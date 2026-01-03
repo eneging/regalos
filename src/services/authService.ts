@@ -3,36 +3,45 @@ import Cookies from "js-cookie";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-/**
- * Opciones comunes para las cookies (secure en prod).
- */
+/* =====================================================
+   COOKIE OPTIONS
+===================================================== */
 function cookieOptions(days = 7) {
   return {
     expires: days,
-    sameSite: "Strict" as const,
+    sameSite: "Lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
   };
 }
 
+/* =====================================================
+   AUTH REQUESTS
+===================================================== */
+
 /**
  * LOGIN
  */
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API_URL}/api/login`, {
+  const res = await fetch(`${API_URL}/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json", // 🔥 CLAVE
+    },
     body: JSON.stringify({ email, password }),
   });
 
-  // leer body aunque sea error para pasar mensaje al front
   const body = await res.json().catch(() => null);
 
-  if (!res.ok) {
+  if (!res.ok || !body?.success) {
     throw new Error(body?.message || "Credenciales inválidas");
   }
 
-  return body;
+  return {
+    user: body.data.user,
+    token: body.data.token,
+  };
 }
 
 /**
@@ -44,123 +53,154 @@ export async function register(
   password: string,
   password_confirmation: string
 ) {
-  const res = await fetch(`${API_URL}/api/register`, {
+  const res = await fetch(`${API_URL}/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password, password_confirmation }),
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json", // 🔥 IMPORTANTE
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      password_confirmation,
+    }),
   });
 
   const body = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    // backend suele devolver errores de validación en body.errors
+  if (!res.ok || !body?.success) {
     throw new Error(body?.message || "Error en el registro");
   }
 
-  return body;
+  return {
+    user: body.data.user,
+    token: body.data.token,
+  };
 }
 
-/**
- * Guardar auth local (localStorage) + cookies (token y role para middleware).
- * @param token token de API
- * @param user objeto user retornado por backend (debe incluir role)
- */
-export function saveAuth(token: string, user: any, rememberDays = 7) {
+/* =====================================================
+   AUTH STORAGE
+===================================================== */
+
+export function saveAuth(token: string, user: any, days = 7) {
+  if (!token || !user) return;
+
   if (typeof window !== "undefined") {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
   }
 
-  Cookies.set("token", token, cookieOptions(rememberDays));
+  Cookies.set("auth_token", token, cookieOptions(days));
+
   if (user?.role) {
-    Cookies.set("role", user.role, cookieOptions(rememberDays));
+    Cookies.set("role", user.role, cookieOptions(days));
   }
 }
 
 /**
- * Logout local (y opcionalmente intentar cerrar sesión en backend).
+ * Limpiar auth completamente
  */
-export async function logout() {
-  const token = getToken();
-  // intentamos avisar al backend (no bloquear si falla)
-  try {
-    if (token) {
-      await fetch(`${API_URL}/api/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-    }
-  } catch  {
-    // ignorar error
-  }
-
+export function clearAuth() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   }
-  Cookies.remove("token");
+
+  Cookies.remove("auth_token");
   Cookies.remove("role");
 }
 
 /**
- * Obtener token (localStorage preferido, si no cookie).
+ * Logout backend + cleanup local
  */
+export async function logout() {
+  const token = getToken();
+
+  try {
+    if (token) {
+      await fetch(`${API_URL}/logout`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+    }
+  } catch {
+    // no bloquear
+  } finally {
+    clearAuth();
+  }
+}
+
+/* =====================================================
+   GETTERS
+===================================================== */
+
 export function getToken(): string | null {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("token") || Cookies.get("token") || null;
+    return (
+      localStorage.getItem("token") ||
+      Cookies.get("auth_token") ||
+      null
+    );
   }
-  return Cookies.get("token") || null;
+
+  return Cookies.get("auth_token") || null;
 }
 
-/**
- * Obtener usuario desde localStorage (cliente).
- */
 export function getUser(): any | null {
-  if (typeof window !== "undefined") {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+  if (typeof window === "undefined") return null;
+
+  const raw = localStorage.getItem("user");
+  if (!raw || raw === "undefined") return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem("user");
+    return null;
   }
-  return null;
 }
 
-/**
- * Obtener role (usa localUser si existe, si no cookie)
- */
 export function getRole(): string | null {
   const user = getUser();
-  if (user?.role) return user.role;
-  return Cookies.get("role") || null;
+  return user?.role || Cookies.get("role") || null;
 }
 
-/**
- * Wrapper para fetch que inyecta Authorization y maneja 401.
- * - `path` puede ser ruta relativa ("/api/..") o URL absoluta.
- */
+/* =====================================================
+   FETCH WITH AUTH
+===================================================== */
+
 export async function fetchWithAuth(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
   const token = getToken();
   const url = path.startsWith("http") ? path : `${API_URL}${path}`;
+
   const headers = new Headers(init.headers || {});
 
-  if (!headers.get("Content-Type")) {
+  // ⚠️ solo setear Content-Type si hay body
+  if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+
+  headers.set("Accept", "application/json");
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(url, { ...init, headers });
+  const res = await fetch(url, {
+    ...init,
+    headers,
+  });
 
-  // opcional: si 401, limpiamos auth local para forzar login
   if (res.status === 401) {
-    await logout();
-    throw new Error("No autorizado. Por favor inicia sesión de nuevo.");
+    clearAuth();
+    throw new Error("Sesión expirada. Inicia sesión nuevamente.");
   }
 
   return res;

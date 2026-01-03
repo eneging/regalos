@@ -1,78 +1,156 @@
-// app/about/page.tsx
-import Image from "next/image";
+"use client";
 
-export default function AboutPage() {
+import Image from "next/image";
+import React, { Suspense } from "react";
+import { motion } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+};
+
+const sections = [
+  {
+    title: "Un Sueño Hecho Realidad",
+    text: [
+      "Puerto Rico Restobar nació del amor por la comida criolla y los buenos momentos. Fundado en 20XX, nuestro objetivo ha sido traer los sabores vibrantes de nuestra tierra a tu mesa.",
+      "Seleccionamos los ingredientes más frescos y cocinamos con cariño y tradición. En cada bocado, sentirás nuestra pasión.",
+    ],
+    img: "https://res.cloudinary.com/dck9uinqa/image/upload/v1761598976/Image_fx_10_logmh7.jpg",
+    reverse: false,
+  },
+  {
+    title: "Nuestra Pasión, Tu Experiencia",
+    text: [
+      "La comida es un lenguaje universal que une a las personas. En Puerto Rico Restobar compartimos esa pasión por la excelencia culinaria y el servicio excepcional.",
+      "Desde nuestros chefs hasta el personal de sala, todos trabajamos para superar tus expectativas y hacer de cada visita una celebración.",
+    ],
+    img: "https://res.cloudinary.com/dck9uinqa/image/upload/v1761599061/Image_fx_11_q0yvjc.jpg",
+    reverse: true,
+  },
+];
+
+const services = [
+  { icon: "🍽️", title: "Comida Criolla Auténtica", desc: "Platos llenos de sabor, historia y sazón casera." },
+  { icon: "🍹", title: "Bebidas Exquisitas", desc: "Cócteles de autor y bebidas refrescantes únicas." },
+  { icon: "🎉", title: "Eventos Inolvidables", desc: "El lugar perfecto para tus celebraciones y reuniones." },
+];
+
+function AboutUs() {
   return (
-    <div className="bg-gray-950 text-gray-200 min-h-screen">
-      <div className="max-w-5xl mx-auto px-6 py-16">
-        
-        {/* Encabezado */}
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-center mb-6 text-emerald-400">
-          🌟 Sobre Michi Marketing
+    <main className="min-h-screen bg-[#0e0e0e] text-white flex flex-col items-center px-4 py-12 md:py-20 overflow-hidden">
+      {/* HERO */}
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        className="text-center mb-14 max-w-3xl mx-auto"
+      >
+        <h1 className="text-5xl md:text-7xl font-extrabold text-orange-500 mb-4 drop-shadow-lg leading-tight">
+          Nuestra Historia ✨
         </h1>
-        <p className="text-center text-lg text-gray-400 max-w-3xl mx-auto mb-12">
-          Un <span className="text-emerald-400 font-semibold">directorio de herramientas</span> creado para ayudar a emprendedores, creadores de contenido y pequeñas empresas a resolver los desafíos del marketing digital y mejorar su presencia online.
+        <p className="text-gray-300 text-lg md:text-2xl leading-relaxed">
+          Descubre la pasión detrás de cada plato y cada momento en{" "}
+          <strong className="text-orange-400">Puerto Rico Restobar</strong>. Somos más que un lugar para comer; somos una experiencia que deleita tus sentidos.
+        </p>
+      </motion.div>
+
+      {/* SECCIONES */}
+      {sections.map((s, i) => (
+        <motion.section
+          key={i}
+          initial="hidden"
+          whileInView="visible"
+          variants={fadeUp}
+          viewport={{ once: true, amount: 0.3 }}
+          className={`flex flex-col ${
+            s.reverse ? "md:flex-row-reverse" : "md:flex-row"
+          } items-center gap-10 bg-gray-900/70 border border-gray-800 rounded-3xl p-8 md:p-12 w-full max-w-6xl mb-16`}
+        >
+          {/* Imagen */}
+          <div className="w-full md:w-1/2">
+            <Suspense fallback={<div className="w-full h-80 bg-gray-800 animate-pulse rounded-full" />}>
+              <Image
+                src={s.img}
+                alt={s.title}
+                width={600}
+                height={600}
+                className="rounded-full w-full h-auto object-cover shadow-md hover:scale-105 transition-transform duration-300"
+              />
+            </Suspense>
+          </div>
+
+          {/* Texto */}
+          <div className="w-full md:w-1/2 space-y-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-orange-400">{s.title}</h2>
+            {s.text.map((t, j) => (
+              <p key={j} className="text-gray-300 text-lg leading-relaxed">
+                {t}
+              </p>
+            ))}
+          </div>
+        </motion.section>
+      ))}
+
+      {/* SERVICIOS */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={fadeUp}
+        viewport={{ once: true, amount: 0.3 }}
+        className="bg-gray-900/70 border border-gray-800 rounded-3xl shadow-md p-8 md:p-12 w-full max-w-6xl mb-16"
+      >
+        <h2 className="text-4xl md:text-5xl font-bold text-orange-400 text-center mb-10">¿Qué Ofrecemos?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          {services.map((item, i) => (
+            <motion.div
+              key={i}
+              variants={fadeUp}
+              className="bg-gray-950/70 rounded-2xl p-6 transition-transform duration-300 hover:scale-[1.03]"
+            >
+              <div className="text-6xl mb-3 animate-bounce-slow">{item.icon}</div>
+              <h3 className="text-2xl font-semibold text-gray-100 mb-2">{item.title}</h3>
+              <p className="text-gray-400">{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* CTA */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        variants={fadeUp}
+        viewport={{ once: true }}
+        className="text-center mt-12"
+      >
+        <p className="text-gray-200 text-xl mb-8 md:text-2xl">
+          ¿Listo para vivir la experiencia{" "}
+          <strong className="text-orange-400">Puerto Rico Restobar</strong>?
         </p>
 
-        {/* Imagen + Texto */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-          <div className="relative w-full h-72 md:h-96">
-            <Image
-              src="/images/michi-marketing.png" // 👈 reemplaza con tu imagen/logo
-              alt="Michi Marketing"
-              fill
-              className="object-contain rounded-2xl"
-            />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-emerald-400">
-              🚀 Nuestra Misión
-            </h2>
-            <p className="text-gray-300 leading-relaxed">
-              En Michi Marketing creemos que todas las empresas y creadores deben tener acceso a herramientas claras, simples y efectivas.  
-              Por eso reunimos en un solo lugar recursos que te ayudarán a crecer en redes sociales, optimizar tus contenidos y potenciar tu marca digital.
-            </p>
-          </div>
-        </div>
-
-        {/* Sección sobre el creador */}
-        <div className="mt-20 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-emerald-400">
-            👨‍💻 El Creador
-          </h2>
-          <div className="flex flex-col items-center">
-            <Image
-              src="/images/edwar-rejas.jpg" // 👈 pon tu foto aquí
-              alt="Edwar Rejas Reyes"
-              width={120}
-              height={120}
-              className="rounded-full border-4 border-emerald-400 shadow-lg mb-4"
-            />
-            <h3 className="text-xl font-semibold">Edwar Rejas Reyes</h3>
-            <p className="text-gray-400 max-w-xl mt-3">
-              Fundador de <span className="text-emerald-400 font-semibold">Michi Marketing</span>.  
-              Apasionado por el marketing digital, la tecnología y ayudar a los negocios a crecer en el mundo online.  
-              Este proyecto nace con la visión de crear una comunidad donde todos puedan acceder a las mejores herramientas de forma práctica y sencilla.
-            </p>
-          </div>
-        </div>
-
-        {/* CTA final */}
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-emerald-400">
-            💡 Sé parte de la comunidad
-          </h2>
-          <p className="text-gray-400 mb-6">
-            Únete a nuestra comunidad y descubre nuevas formas de hacer crecer tu negocio con creatividad y estrategia.
-          </p>
-          <a href="comunidad"
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold transition"
+        <a
+          href="/menu"
+          className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 text-xl inline-flex items-center gap-3"
+        >
+          Explorar Nuestro Menú
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            Unirme ahora 🚀
-          </a>
-        </div>
-      </div>
-    </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 8l4 4m0 0l-4 4m4-4H3"
+            />
+          </svg>
+        </a>
+      </motion.div>
+    </main>
   );
 }
+
+export default React.memo(AboutUs);

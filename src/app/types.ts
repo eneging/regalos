@@ -62,3 +62,67 @@ export type Tool = {
 };
 
 
+
+
+// src/types.ts
+export interface Category {
+  id: number;
+  name: string;
+  image: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  is_offer: boolean;
+  offer_price?: number;
+  category: Category;  
+               // objeto Category completo
+  available: boolean;
+  created_at: string;
+  updated_at: string;
+   product_category_id: number;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface User {
+  id?: number;
+  name: string;
+  email: string;
+  password?: string;
+  role?: string;
+  phone?: string;
+  address?: string;
+  dni_or_ruc?: string;
+  profile_image?: string;
+  birthday?: string;
+  gender?: 'male' | 'female' | 'other';
+  is_active?: boolean;
+}
+
+
+
+export interface Category {
+  id: number;
+  name: string;
+}
+
+// Para el formulario, permitimos que la imagen sea un archivo o una URL
+export type ProductFormData = Omit<Product, "id"> & {
+  image_url: File | string | null;
+};
+
+// Para el payload que se envía al backend
+export type ProductPayload = Omit<Product, "id" | "image_url"> & {
+  image_url?: string;
+};

@@ -7,6 +7,7 @@ import {
   login as loginService,
   logout as logoutService,
   saveAuth,
+  clearAuth,
   fetchWithAuth,
 } from "@/services/authService";
 
@@ -26,10 +27,10 @@ interface AuthContextType {
   isAdmin: boolean;
   isPremium: boolean;
   isFree: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  downloadProduct: (productId: number) => Promise<string | null>; // retorna URL si todo ok
+  downloadProduct: (productId: number) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,84 +38,99 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
+  // 🔄 Hidratar auth al cargar la app
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedToken = getToken();
-      const storedUser = getUser();
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(storedUser);
-      }
-    }
+    const storedToken = getToken();
+    const storedUser = getUser();
+
+    if (storedToken) setToken(storedToken);
+    if (storedUser) setUser(storedUser);
+
+    setHydrated(true);
   }, []);
 
+  // 🔐 LOGIN
   const login = async (email: string, password: string) => {
     const data = await loginService(email, password);
-    if (data.token && data.user) {
+
+    if (data?.token && data?.user) {
       saveAuth(data.token, data.user);
       setToken(data.token);
       setUser(data.user);
+      return true;
+    }
+
+    return false;
+  };
+
+  // 🔓 LOGOUT
+  const logout = async () => {
+    try {
+      await logoutService();
+    } finally {
+      clearAuth();
+      setToken(null);
+      setUser(null);
     }
   };
 
-  const logout = () => {
-    logoutService();
-    setToken(null);
-    setUser(null);
-  };
-
-  // 🔄 Refrescar datos de usuario desde backend
+  // 🔄 REFRESCAR USUARIO
   const refreshUser = async () => {
+    if (!token) return;
+
     try {
-      const res = await fetchWithAuth("/api/me"); // debes crear este endpoint en Laravel
-      if (res.ok) {
-        const data = await res.json();
-        saveAuth(token!, data.user);
-        setUser(data.user);
-      }
+      const res = await fetchWithAuth("/api/me");
+      if (!res.ok) return;
+
+      const json = await res.json();
+
+      const freshUser = json.data;
+      saveAuth(token, freshUser);
+      setUser(freshUser);
     } catch (e) {
       console.error("Error al refrescar usuario", e);
     }
   };
 
-  // ⬇️ Descargar producto (y actualizar contador en el front)
-  const downloadProduct = async (productId: number): Promise<string | null> => {
+  // ⬇️ DESCARGA
+  const downloadProduct = async (productId: number) => {
     try {
-      const res = await fetchWithAuth(`/api/products/${productId}/download`, {
-        method: "POST",
-      });
+      const res = await fetchWithAuth(
+        `/api/products/${productId}/download`,
+        { method: "POST" }
+      );
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
 
-      if (!res.ok) {
-        throw new Error(data.message || "No se pudo descargar");
-      }
-
-      // actualizamos contador en el estado
       if (user) {
         const updatedUser = {
           ...user,
           downloads_today: data.downloads_today,
           last_download_at: data.last_download_at,
         };
+
         saveAuth(token!, updatedUser);
         setUser(updatedUser);
       }
 
-      return data.download_url; // URL firmada de S3 o storage
+      return data.download_url;
     } catch (e) {
       console.error(e);
       return null;
     }
   };
 
+  if (!hydrated) return null;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
-        isAuthenticated: !!token,
+        isAuthenticated: !!token, // ✅ CORRECTO
         isAdmin: user?.role === "admin",
         isPremium: user?.role === "premium",
         isFree: user?.role === "free",
@@ -130,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  return ctx;
 }

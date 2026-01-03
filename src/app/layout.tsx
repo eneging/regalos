@@ -7,6 +7,11 @@ import Footer from "./components/Footer";
 //import Script from "next/script";
 //import AdSense from "./components/AdSense";
 import BottomNav from "./components/BottomNav";
+import { CartProvider } from "./context/CartContext";
+import SliderOver from "./components/cart/SliderOver";
+import { CartDrawerProvider } from "./components/cart/CartDrawerContext";
+import Script from "next/script";
+import { AuthProvider } from "./context/AuthContext";
 
 //import AdBanner from "./components/Adbanner";
 
@@ -21,12 +26,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+declare global {
+  interface Window {
+    Culqi: any;
+  }
+}
+
+
 // Metadatos globales (SEO + Redes sociales)
 export const metadata: Metadata = {
-  metadataBase: new URL("https://michimarketing.com"),
+  metadataBase: new URL("https://puertoricoica.online"),
 
   title: {
-    default: "MichiMarketing - AI Tools Directory",
+    default: "Puerto rico ica",
     template: "%s | MichiMarketing",
   },
   description:
@@ -39,13 +51,13 @@ export const metadata: Metadata = {
     "Directorio AI",
     "Productividad",
   ],
-  authors: [{ name: "MichiMarketing Team" }],
-  creator: "MichiMarketing",
-  publisher: "MichiMarketing",
+  authors: [{ name: "Puerto rico ica Team" }],
+  creator: "Puertoricoica",
+  publisher: "puertoricoica",
   openGraph: {
     type: "website",
     locale: "es_ES",
-    url: "https://michimarketing.com",
+    url: "https://puertoricoica.online",
     siteName: "MichiMarketing",
     title: "MichiMarketing - AI Tools Directory",
     description:
@@ -88,19 +100,31 @@ export default function RootLayout({
         ></meta>
 
         <meta name="google-site-verification" content="4sqJ9_7alGwA2JLhpC2sHDDfTjpd9IlZS4dxfdQU5gk" />
+ 
+
         <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9559644099127130"
           crossOrigin="anonymous"
         />
+
+    
       </head>
 
       <body
+
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white font-sans`}
       >
+             <Script
+          src="https://sdk.mercadopago.com/js/v2"
+          strategy="afterInteractive"
+        />
+      <AuthProvider>
+        <CartDrawerProvider>
+          <CartProvider>
         <Navbar></Navbar>
 
-        <div className="flex flex-col lg:flex-row max-w-screen-2xl mx-auto px-6 py-16 gap-8">
+        <div className="    ">
          
 
           <main className="flex-1 min-h-screen">{children}</main>
@@ -109,6 +133,16 @@ export default function RootLayout({
         </div>
         <BottomNav></BottomNav>
         <Footer></Footer>
+        
+        <SliderOver ></SliderOver>
+</CartProvider>
+
+ </CartDrawerProvider>
+</AuthProvider>  
+     <Script
+          src="https://checkout.culqi.com/js/v4"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

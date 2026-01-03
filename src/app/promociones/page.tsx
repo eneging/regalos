@@ -1,0 +1,129 @@
+"use client";
+
+import React from "react";
+import Image from "next/image";
+import { Tag, ShoppingCart, AlertCircle } from "lucide-react";
+import { useStoreData } from "../hooks/useStoreData";
+import { useCart } from "../context/CartContext";
+
+const PromocionesPage = () => {
+  const { products, categories, loading, error } = useStoreData();
+  const { addToCart } = useCart();
+
+  const offerProducts = products.filter((p) => p.is_offer);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-64 bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-xl mx-auto mt-20 p-4 flex items-center gap-2 text-red-400 bg-red-950/30 border border-red-900 rounded-xl">
+        <AlertCircle size={20} />
+        {error}
+      </div>
+    );
+  }
+
+  if (offerProducts.length === 0) {
+    return (
+      <div className="text-center py-20 text-zinc-400">
+        No hay promociones activas por ahora
+      </div>
+    );
+  }
+
+  return (
+    <main className="max-w-7xl mx-auto px-4 py-12">
+      {/* HEADER */}
+      <div className="flex items-center gap-3 mb-10">
+        <Tag className="text-orange-500 w-7 h-7" />
+        <h1 className="text-3xl font-bold text-white">
+          Promociones y Ofertas
+        </h1>
+      </div>
+
+      {/* GRID */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+        {offerProducts.map((product) => {
+          const category = categories.find(
+            (c) => c.id === product.product_category_id
+          );
+
+          const discount = Math.round(
+            ((Number(product.price) - Number(product.offer_price)) /
+              Number(product.price)) *
+              100
+          );
+
+          const imageSrc =
+            product.image_url && product.image_url.startsWith("http")
+              ? product.image_url
+              : "/placeholder.jpg";
+
+          return (
+            <div
+              key={product.id}
+              className="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500 transition group"
+            >
+              {/* Discount */}
+              <span className="absolute top-3 left-3 z-10 bg-orange-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                -{discount}%
+              </span>
+
+              {/* Image */}
+              <div className="relative h-40 bg-zinc-950">
+                <Image
+                  src={imageSrc}
+                  alt={product.name}
+                  fill
+                  className="object-contain p-4 group-hover:scale-105 transition-transform"
+                  sizes="(max-width: 768px) 50vw, 200px"
+                />
+              </div>
+
+              {/* Info */}
+              <div className="p-4 flex flex-col gap-2">
+                <p className="text-xs text-orange-500 uppercase">
+                  {category?.name || "Oferta"}
+                </p>
+
+                <h3 className="text-sm font-semibold text-white line-clamp-2">
+                  {product.name}
+                </h3>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-white">
+                    S/ {Number(product.offer_price).toFixed(2)}
+                  </span>
+                  <span className="text-xs text-zinc-500 line-through">
+                    S/ {Number(product.price).toFixed(2)}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => addToCart(product)}
+                  className="mt-2 w-full bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold py-2 rounded-lg flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <ShoppingCart size={16} />
+                  Agregar
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </main>
+  );
+};
+
+export default PromocionesPage;

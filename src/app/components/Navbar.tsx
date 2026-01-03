@@ -1,638 +1,292 @@
 "use client";
+import { useCartDrawer } from "../components/cart/CartDrawerContext";
+import { useCart } from "../context/CartContext";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Menu, X, Search, Sparkles, ChevronDown, MoreHorizontal } from "lucide-react";
-
-
-// ------------------------------------------------
-// Definición de tipos
-// ------------------------------------------------
-
-type Tool = {
-  slug: string;
-  name: string;
-  logo?: string;
-  description?: string;
-  category?: string;
-  tags?: string[];
-};
-
-type Category = {
-  slug: string;
-  name: string;
-  description?: string;
-};
-
-
-
-type Suggestion =
-  | ({ kind: "tool" } & {
-      slug: string;
-      name: string;
-      logo?: string;
-      description?: string;
-      category?: string;
-    })
-  | ({ kind: "category" } & {
-      slug: string;
-      name: string;
-      description?: string;
-    });
-
-
-
-// Modal para enlaces adicionales
-function MoreLinksModal({ isOpen, onClose, links }: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  links: { href: string; label: string }[];
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div 
-        className="bg-gray-900 border border-gray-700/50 rounded-xl p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-white">Más enlaces</h3>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        
-        <div className="space-y-2">
-          {links.map((link, index) => (
-            <Link
-              key={index}
-              href={link.href}
-              className="block px-4 py-3 text-gray-300 hover:bg-gray-800/60 rounded-lg transition-colors"
-              onClick={onClose}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-        
-        <button 
-          onClick={onClose}
-          className="mt-6 w-full py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
-        >
-          Cerrar
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Tooltip para enlaces adicionales
-function MoreLinksTooltip({ isOpen, links }: { 
-  isOpen: boolean; 
-  links: { href: string; label: string }[];
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 border border-gray-700/50 rounded-xl shadow-xl z-50 overflow-hidden">
-      {links.map((link, index) => (
-        <Link
-          key={index}
-          href={link.href}
-          className="block px-4 py-3 text-gray-300 hover:bg-gray-800/60 transition-colors text-sm border-b border-gray-800/30 last:border-b-0"
-        >
-          {link.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-// ------------------------------------------------
-/* Componente principal: Navbar */
-// ------------------------------------------------
+import {
+  Menu,
+  X,
+  Search,
+  ShoppingCart,
+  User,
+  Heart,
+  ChevronDown,
+  Phone,
+  ExternalLink,
+  // 👇 Nuevos iconos para las tiendas
+  Wine,
+  UtensilsCrossed,
+  Gift,
+} from "lucide-react";
+import SearchBar from "./SearchBar";
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
-  const [activeIndex, setActiveIndex] = useState<number>(-1);
-  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
-  const [moreLinksOpen, setMoreLinksOpen] = useState(false);
-  const [useModal, setUseModal] = useState(false);
-  const moreLinksRef = useRef<HTMLDivElement>(null);
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  
   const router = useRouter();
+  const { cart } = useCart();
+  const { openDrawer } = useCartDrawer();
 
-  // Definir enlaces principales y adicionales
-  const mainLinks = [
-    { href: "/", label: "Inicio", id: "home" },
-  { href: "/tools", label: "Todas las Herramientas", id: "tools" },
-  { href: "/blog", label: "Blog", id: "blog" }, // agregado
-  //  { href: "/comparativas", label: "Comparativas", id: "comparativas" },
-  ];
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [scrolled, setScrolled] = useState(false);
 
-  const additionalLinks = [
-   // { href: "/deals", label: "Ofertas" },
-   
-    { href: "/cursos", label: "Cursos" },
-    { href: "/comunidad", label: "Comunidad" },
-    { href: "/generadorQR", label: "Generador QR" },
-    { href: "/login", label: "login" },
-  ];
-
-  
-// Cerrar menú de enlaces adicionales al hacer clic fuera (solo tooltip, no modal)
-useEffect(() => {
-  if (useModal) return; // ⬅️ No cerrar si es modal
-
-  function handleClickOutside(event: MouseEvent) {
-    if (moreLinksRef.current && !moreLinksRef.current.contains(event.target as Node)) {
-      setMoreLinksOpen(false);
-    }
-  }
-
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, [useModal]);
-
-
-
-
-  // Determinar si usar modal basado en el ancho de pantalla
   useEffect(() => {
-    const checkScreenSize = () => {
-      setUseModal(window.innerWidth < 1024); // Usar modal en pantallas menores a 1024px
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler);
+    return () => window.removeEventListener("scroll", handler);
   }, []);
 
+  // 🏪 TUS OTRAS TIENDAS (Ahora con Iconos en lugar de Img)
+  const marketplaces = [
+    {
+      name: "Licorería",
+      href: "https://licoreria.puertoricoica.online",
+      icon: Wine, // 🍷 Icono para la licorería
+      active: true,
+    },
+    {
+      name: "Restobar",
+      href: "https://restobar.puertoricoica.online",
+      icon: UtensilsCrossed, // 🍽️ Icono para el restobar
+      active: false,
+    },
+    {
+      name: "Regalos",
+      href: "https://gifts.puertoricoica.online",
+      icon: Gift, // 🎁 Icono para regalos
+      active: false,
+    },
+  ];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
- // Llamar API para obtener datos
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Aquí pon tus endpoints reales 👇
-        const toolsRes = await fetch(`${API_URL}/api/tools`);
-        const categoriesRes = await fetch(`${API_URL}/api/categories`);
+  const navLinks = [
+    { name: "Ofertas 🔥", href: "/promociones", highlight: true },
+    { name: "Whiskys", href: "/categoria/whisky" },
+    { name: "Rones", href: "/categoria/ron" },
+    { name: "Piscos", href: "/categoria/piscos" },
+    { name: "Cervezas", href: "/categoria/cervezas" },
+    { name: "combos", href: "/combos" },
+  ];
 
-        const toolsData = await toolsRes.json();
-        const categoriesData = await categoriesRes.json();
-
-          setTools(toolsData.data ?? []);
-          
-      setCategories(categoriesData ?? []);
-   
-
-      } catch (error) {
-        console.error("Error cargando datos:", error);
-      }
-    }
-    fetchData();
-  }, [API_URL]);
-
-
-  // Función para manejar la búsqueda
-  // ------------------------------------------------
-   // Buscar
-  const handleSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSearch = (e: React.FormEvent) => {
+    e?.preventDefault();
     if (!query.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(query)}`);
+    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
     setQuery("");
-    setFocused(false);
-    setMenuOpen(false);
-    setActiveIndex(-1);
   };
 
-  // ------------------------------------------------
-  // Generar sugerencias (protegido contra undefined)
-  // ------------------------------------------------
- 
-  // Filtrar sugerencias dinámicamente
-  const allSuggestions: Suggestion[] = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-
-    const catMatches: Suggestion[] = categories
-      .filter(
-        (c) =>
-          (c.name?.toLowerCase() || "").includes(q) ||
-          (c.description?.toLowerCase() || "").includes(q)
-      )
-      .map((c) => ({ kind: "category" as const, ...c }));
-
-    const toolMatches: Suggestion[] = tools
-      .filter(
-        (t) =>
-          (t.name?.toLowerCase() || "").includes(q) ||
-          (t.description?.toLowerCase() || "").includes(q) ||
-          t.tags?.some((tag: string) => (tag?.toLowerCase() || "").includes(q))
-      )
-      .map((t) => ({ kind: "tool" as const, ...t }));
-
-    return [...catMatches.slice(0, 3), ...toolMatches.slice(0, 7)].slice(0, 8);
-  }, [query, tools, categories])
-
-
-  // ------------------------------------------------
-  // Navegar a la sugerencia seleccionada
-  // ------------------------------------------------
-  const goToSuggestion = (s: Suggestion) => {
-    const href = s.kind === "tool" ? `/tools/${s.slug}` : `/categories/${s.slug}`;
-    router.push(href);
-    setFocused(false);
-    setMenuOpen(false);
-    setActiveIndex(-1);
-  };
-
-  // ------------------------------------------------
-  // Manejo de teclas para selección de sugerencias
-  // ------------------------------------------------
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!allSuggestions.length) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev + 1) % allSuggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev - 1 + allSuggestions.length) % allSuggestions.length);
-    } else if (e.key === "Enter") {
-      if (activeIndex >= 0) {
-        e.preventDefault();
-        goToSuggestion(allSuggestions[activeIndex]);
-      }
-    } else if (e.key === "Escape") {
-      setFocused(false);
-      setActiveIndex(-1);
-    }
-  };
-
-  // ------------------------------------------------
-  // Resaltar texto coincidente en sugerencias
-  // ------------------------------------------------
-  const highlight = (text: string = "", q: string) => {
-    const i = text.toLowerCase().indexOf(q.toLowerCase());
-    if (i === -1) return text;
-    return (
-      <>
-        {text.slice(0, i)}
-        <mark className="bg-blue-400/20 rounded px-0.5 text-white border border-blue-400/30">
-          {text.slice(i, i + q.length)}
-        </mark>
-        {text.slice(i + q.length)}
-      </>
-    );
-  };
-
-  // ------------------------------------------------
-  // Sub-componente para la lista de sugerencias
-  // ------------------------------------------------
-  const SuggestionList = () => (
-    <>
-      {focused && query && allSuggestions.length > 0 && (
-        <div
-          className={`absolute top-full left-0 right-0 mt-2 bg-gray-900/95 backdrop-blur-md border border-gray-700/50 shadow-2xl shadow-black/40 rounded-xl z-50 overflow-hidden`}
-          role="listbox"
-          aria-label="Sugerencias de búsqueda"
-        >
-          <div className="p-2 border-b border-gray-700/50">
-            <p className="text-xs text-gray-400 px-2 py-1">Resultados para `{query}`</p>
-          </div>
-          {allSuggestions.map((s, idx) => (
-            <button
-              key={`${s.kind}-${s.slug}-${idx}`}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                goToSuggestion(s);
-              }}
-              className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-800/50 transition-all duration-200 ${
-                idx === activeIndex ? "bg-gray-800/50" : ""
-              } ${idx < allSuggestions.length - 1 ? "border-b border-gray-800/30" : ""}`}
-              role="option"
-              aria-selected={idx === activeIndex}
-            >
-              {/* Avatar / icono */}
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center overflow-hidden border border-gray-700/50">
-                {s.kind === "tool" && s.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.logo} alt={s.name} className="w-full h-full object-contain p-1" />
-                ) : (
-                  <div className="text-xs text-gray-400 font-semibold">
-                    {s.kind === "tool" ? "TL" : "CAT"}
-                  </div>
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-white truncate">
-                  {highlight(s.name, query)}
-                </div>
-                <div className="text-xs text-gray-400 truncate">
-                  {s.kind === "tool"
-                    ? s.category
-                      ? `Herramienta • ${s.category}`
-                      : "Herramienta"
-                    : "Categoría"}
-                </div>
-              </div>
-              <div className="text-gray-500 text-xs font-medium px-2 py-1 rounded bg-gray-800/50">
-                {s.kind === "tool" ? "Herramienta" : "Categoría"}
-              </div>
-            </button>
-          ))}
-
-          <div className="border-t border-gray-700/50 p-2 bg-gray-900">
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSearch();
-              }}
-              className="w-full text-left px-4 py-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium flex items-center justify-between group"
-            >
-              <span>Ver todos los resultados para `{query}`</span>
-              <div className="px-2 py-1 bg-blue-500/10 rounded text-blue-400 text-xs group-hover:bg-blue-500/20 transition-colors">
-                Enter
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-
-  // ------------------------------------------------
-  // Renderizado principal del Navbar
-  // ------------------------------------------------
   return (
     <>
-      <nav className="w-full bg-gray-950/80 backdrop-blur-xl border-b border-gray-800/50 sticky top-0 z-40 shadow-lg shadow-black/10">
-        <div className="max-w-9xl mx-auto px-6 flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 transition-all duration-300 hover:from-blue-300 hover:to-purple-300 flex items-center"
-            onMouseEnter={() => setHoveredLink("logo")}
-            onMouseLeave={() => setHoveredLink(null)}
-          >
-            <div className="relative">
-              <h1 className="text-white">MichiMarketing</h1>
-              <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 transition-opacity duration-300 hover:opacity-100"></span>
-            </div>
-            <span className="text-xs font-normal text-gray-400 ml-2 bg-gray-800/50 px-2 py-1 rounded-full border border-gray-700/50">
-              Directorio
-            </span>
-          </Link>
-
-          {/* Desktop */}
-          <div className="hidden md:flex flex-grow items-center justify-end space-x-4">
-            {/* Links principales */}
-            <div className="flex items-center space-x-1">
-              {mainLinks.map((link) => (
-                <Link
-                  key={link.id}
-                  href={link.href}
-                  className="text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-800/30 transition-all duration-300 relative group"
-                  onMouseEnter={() => setHoveredLink(link.id)}
-                  onMouseLeave={() => setHoveredLink(null)}
-                >
-                  {link.label}
-                  <span
-                    className={`absolute -bottom-1 left-3 right-3 h-0.5 bg-blue-400 transition-all duration-300 ${
-                      hoveredLink === link.id ? "opacity-100" : "opacity-0"
-                    }`}
-                  ></span>
-                </Link>
-              ))}
-
-              {/* Categorías con dropdown dinámico */}
-              <div
-                className="relative"
-                onMouseEnter={() => setHoveredLink("categories")}
-                onMouseLeave={() => setHoveredLink(null)}
-              >
-                <button className="flex items-center text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-800/30 transition-all duration-300 relative group">
-                  Categorías
-                  <ChevronDown size={14} className="ml-1 opacity-60" />
-                  <span
-                    className={`absolute -bottom-1 left-3 right-3 h-0.5 bg-purple-400 transition-all duration-300 ${
-                      hoveredLink === "categories" ? "opacity-100" : "opacity-0"
-                    }`}
-                  ></span>
-                </button>
-
-                {hoveredLink === "categories" && (
-                  <div className="absolute left-0 mt-2 w-72 bg-gray-900 border border-gray-700/50 rounded-xl shadow-xl overflow-hidden z-50">
-                    {categories.map((cat) => (
-                      <Link
-                        key={cat.slug}
-                        href={`/categories/${cat.slug}`}
-                        className="block px-4 py-3 text-gray-300 hover:bg-gray-800/60 transition-colors text-sm"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        <div className="font-medium">{cat.name}</div>
-                        <p className="text-xs text-gray-500 truncate">{cat.description}</p>
-                      </Link>
-                    ))}
-                    <div className="border-t border-gray-800/50">
-                      <Link
-                        href="/categories"
-                        className="block px-4 py-3 text-blue-400 hover:bg-blue-500/10 text-sm font-medium"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Ver todas las categorías →
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Botón para enlaces adicionales */}
-              <div 
-                className="relative"
-                ref={moreLinksRef}
-              >
-                <button 
-                  className="flex items-center text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-800/30 transition-all duration-300 relative group"
-                  onClick={() => setMoreLinksOpen(!moreLinksOpen)}
-                  onMouseEnter={() => !useModal && setMoreLinksOpen(true)}
-                 
-                >
-                  Más
-                  <MoreHorizontal size={16} className="ml-1 opacity-60" />
-                  <span className="absolute -bottom-1 left-3 right-3 h-0.5 bg-green-400 transition-all duration-300 opacity-0 group-hover:opacity-100"></span>
-                </button>
-
-                {!useModal && (
-                  <MoreLinksTooltip isOpen={moreLinksOpen} links={additionalLinks} />
-                )}
-              </div>
-            </div>
-
-            {/* Buscador + CTA */}
-            <div className="flex items-center space-x-3">
-              <div className="relative w-full max-w-xs">
-                <form
-                  onSubmit={handleSearch}
-                  className={`flex items-center bg-gray-900/50 rounded-full px-4 py-2.5 border transition-all duration-300 ${
-                    focused ? "border-blue-500/50 shadow-lg shadow-blue-500/10" : "border-gray-700/50 hover:border-gray-600"
+      {/* =========================================================
+          🌍 TOP BAR (MULTI-TIENDA) - ICONOS
+      ========================================================== */}
+      <div className="hidden md:flex justify-between items-center bg-[#000000] text-[11px] py-2 px-6 md:px-10 border-b border-white/10 relative z-[10000]">
+        
+        {/* Izquierda: Switcher de Marcas */}
+        <div className="flex items-center gap-6">
+           <span className="text-gray-500 font-bold uppercase tracking-wider">Nuestras Tiendas:</span>
+           <div className="flex items-center gap-5">
+              {marketplaces.map((m) => (
+                <a
+                  key={m.name}
+                  href={m.href}
+                  target={m.active ? "_self" : "_blank"}
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-2 transition-all group ${
+                    m.active ? "opacity-100 cursor-default" : "opacity-50 hover:opacity-100"
                   }`}
                 >
-                  <Search className="w-4 h-4 text-gray-400 mr-2" />
-                  <input
-                    type="text"
-                    placeholder="Buscar herramientas..."
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value);
-                      setActiveIndex(-1);
-                    }}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setTimeout(() => setFocused(false), 120)}
-                    onKeyDown={onKeyDown}
-                    className="bg-transparent outline-none flex-grow text-gray-200 placeholder-gray-500 text-sm"
-                    role="combobox"
-                    aria-expanded={focused && allSuggestions.length > 0}
-                    aria-autocomplete="list"
-                    aria-controls="suggestions"
+                  {/* Renderizamos el icono dinámicamente */}
+                  <m.icon 
+                    size={14} 
+                    className={m.active ? "text-amber-500" : "text-gray-400 group-hover:text-white"} 
                   />
-                </form>
-                <SuggestionList />
-              </div>
-
-              <Link
-                href="/comunidad"
-                className="flex items-center bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium py-2 px-4 rounded-full border border-blue-500/30 hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 group"
-              >
-                <Sparkles className="w-4 h-4 mr-1.5" /> Comunidad
-              </Link>
-            </div>
-          </div>
-
-          {/* Botón Mobile */}
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden p-2 text-gray-300 hover:bg-gray-800/30 rounded-lg transition-colors"
-            aria-label="Abrir menú"
-          >
-            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+                  
+                  <span className={`font-medium ${m.active ? "text-amber-500" : "text-gray-300 group-hover:text-white"}`}>
+                    {m.name}
+                  </span>
+                  
+                  {!m.active && <ExternalLink size={10} className="text-gray-600" />}
+                </a>
+              ))}
+           </div>
         </div>
 
-        {/* Menú Mobile */}
-        {menuOpen && (
-          <div className="md:hidden bg-gray-900/95 backdrop-blur-lg px-6 py-4 border-t border-gray-800/50 space-y-4">
-            <div className="relative">
-              <form
-                onSubmit={handleSearch}
-                className="flex items-center bg-gray-800/50 rounded-full px-4 py-2.5 border border-gray-700/50 focus-within:border-blue-500/50 transition-all duration-300"
-              >
-                <Search className="w-4 h-4 text-gray-400 mr-2" />
-                <input
-                  type="text"
-                  placeholder="Buscar herramientas..."
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setActiveIndex(-1);
-                  }}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setTimeout(() => setFocused(false), 120)}
-                  onKeyDown={onKeyDown}
-                  className="bg-transparent outline-none flex-grow text-gray-200 placeholder-gray-500 text-sm"
-                />
-              </form>
-              <SuggestionList />
-            </div>
+        {/* Derecha: Contacto Rápido */}
+        <div className="flex items-center gap-4 text-gray-400">
+           <a href="tel:51933739769" className="hover:text-white flex items-center gap-1 transition-colors">
+              <Phone size={12} /> <span className="hidden lg:inline">Pedidos:</span> 933 739 769
+           </a>
+           <span className="text-gray-700">|</span>
+           <span className="text-amber-500 font-medium">Delivery Flash en Ica ⚡</span>
+        </div>
+      </div>
 
-            <div className="space-y-1">
+      {/* =========================================================
+          🛒 MAIN NAVBAR (STICKY)
+      ========================================================== */}
+      <header 
+        className={`sticky top-0 w-full z-[9999] transition-all duration-300 border-b border-white/5 ${
+          scrolled ? "bg-[#050505]/95 backdrop-blur-md py-2 shadow-xl" : "bg-[#050505] py-4"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-6 md:px-10 flex items-center justify-between gap-6">
+          
+          {/* 1. LOGO PRINCIPAL */}
+          <Link href="/" className="flex-shrink-0 relative z-20">
+            <Image
+              src="https://res.cloudinary.com/dck9uinqa/image/upload/v1765050033/logopuertoricoblanco_abvacb.svg"
+              alt="Puerto Rico Licorería"
+              width={180}
+              height={50}
+              className={`object-contain transition-all duration-300 ${
+                scrolled ? "h-7 md:h-8" : "h-9 md:h-10"
+              }`}
+              priority
+            />
+          </Link>
+
+          {/* 2. DESKTOP NAV */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+            {navLinks.map((link) => (
               <Link
-                href="/"
-                onClick={() => setMenuOpen(false)}
-                className="block text-gray-300 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-800/50 transition-all duration-300"
+                key={link.name}
+                href={link.href}
+                className={`text-sm font-medium transition-colors ${
+                  link.highlight 
+                    ? "text-red-500 hover:text-red-400 font-bold" 
+                    : "text-gray-300 hover:text-white"
+                }`}
               >
-                Inicio
+                {link.name}
+              </Link>
+            ))}
+          </nav>
+
+          {/* 3. SEARCH & ACTIONS */}
+          <div className="flex items-center gap-4 flex-1 justify-end">
+            
+            {/* Search Bar */}
+           <div className="lg:block hidden">
+
+      <SearchBar></SearchBar>
+
+
+           </div>
+     
+
+            {/* Iconos de Acción */}
+            <div className="flex items-center gap-3 border-l border-white/10 pl-4">
+              <Link href="/account" className="hidden sm:block text-gray-400 hover:text-white transition">
+                <User size={22} />
+              </Link>
+              <Link href="/wishlist" className="hidden sm:block text-gray-400 hover:text-amber-500 transition">
+                <Heart size={22} />
               </Link>
 
-              {/* Categorías en mobile */}
-              <details className="group">
-                <summary className="flex items-center justify-between cursor-pointer px-4 py-2.5 text-gray-300 font-medium rounded-lg hover:bg-gray-800/50">
-                  Categorías
-                  <ChevronDown size={14} className="ml-1 opacity-60 group-open:rotate-180 transition-transform" />
-                </summary>
-                <div className="pl-4 mt-2 space-y-1">
-                  {categories.map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      href={`/categories/${cat.slug}`}
-                      onClick={() => setMenuOpen(false)}
-                      className="block text-gray-400 text-sm py-1.5 hover:text-gray-200 transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                  <Link
-                    href="/categories"
-                    onClick={() => setMenuOpen(false)}
-                    className="block text-blue-400 text-sm py-1.5 hover:text-blue-300"
-                  >
-                    Ver todas →
-                  </Link>
-                </div>
-              </details>
-
-              <Link
-                href="/tools"
-                onClick={() => setMenuOpen(false)}
-                className="block text-gray-300 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-800/50 transition-all duration-300"
+              {/* 🛒 CARRITO */}
+              <button 
+                onClick={openDrawer} 
+                className="relative group flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white px-4 py-2 rounded-full transition-all shadow-lg hover:shadow-amber-500/20"
               >
-                Todas las Herramientas
-              </Link>
-              
-              {additionalLinks.map((link, index) => (
-                <Link
-                  key={index}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="block text-gray-300 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-800/50 transition-all duration-300"
-                >
-                  {link.label}
-                </Link>
-              ))}
+                <ShoppingCart size={18} className="fill-white/10" />
+                <span className="font-bold text-sm">
+                   {cart.length > 0 ? cart.reduce((acc, item) => acc + item.quantity, 0) : 0}
+                </span>
+              </button>
 
-            {/*  <Link
-                href="/pro-plan"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300 mt-4 shadow-lg shadow-blue-500/20"
+              {/* Mobile Toggle */}
+              <button 
+                onClick={() => setMobileOpen(true)} 
+                className="lg:hidden text-white ml-1"
               >
-                <Sparkles className="w-4 h-4 mr-2" /> Premium
-              </Link>*/}
+                <Menu size={26} />
+              </button>
             </div>
           </div>
-        )}
-      </nav>
+        </div>
 
-      {/* Modal para enlaces adicionales (en móvil) */}
-      <MoreLinksModal 
-        isOpen={useModal && moreLinksOpen} 
-        onClose={() => setMoreLinksOpen(false)} 
-        links={additionalLinks}
-      />
+        {/* =========================================================
+            📱 MOBILE MENU (Slide-over)
+        ========================================================== */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-[99999] flex justify-end">
+            <div 
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setMobileOpen(false)}
+            />
+
+            <aside className="relative w-[85%] max-w-[350px] h-full bg-[#0f0f0f] text-white p-6 shadow-2xl flex flex-col border-l border-white/10 overflow-y-auto">
+              
+              <div className="flex justify-between items-center mb-8">
+                 <Image
+                    src="https://res.cloudinary.com/dck9uinqa/image/upload/v1765050033/logopuertoricoblanco_abvacb.svg"
+                    alt="Logo"
+                    width={140}
+                    height={40}
+                 />
+                 <button onClick={() => setMobileOpen(false)} className="bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
+                   <X size={20} />
+                 </button>
+              </div>
+
+              {/* Mobile Search */}
+              <div className="mb-6 relative">
+                 
+                   
+                    
+
+                  <SearchBar></SearchBar>
+              </div>
+
+              {/* Links de Categorías */}
+              <div className="space-y-1 mb-8">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Categorías</p>
+                {navLinks.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`py-3 px-4 rounded-xl flex justify-between items-center transition-colors ${
+                      l.highlight 
+                        ? "bg-red-500/10 text-red-500 font-bold" 
+                        : "bg-white/5 hover:bg-white/10 text-gray-200"
+                    }`}
+                  >
+                    {l.name}
+                    {!l.highlight && <ChevronDown size={16} className="-rotate-90 text-gray-600" />}
+                  </Link>
+                ))}
+              </div>
+
+              {/* 👇 SWITCHER DE TIENDAS (MÓVIL) CON ICONOS GRANDES */}
+              <div className="mt-auto pt-6 border-t border-white/10">
+                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Otras Tiendas Puerto Rico</p>
+                 <div className="grid grid-cols-2 gap-3">
+                    {marketplaces.filter(m => !m.active).map(m => (
+                        <a 
+                            key={m.name} 
+                            href={m.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex flex-col items-center justify-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5 hover:border-amber-500/30 hover:bg-white/10 transition-all group"
+                        >
+                            {/* Icono Grande */}
+                            <m.icon size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
+                            
+                            <div className="flex items-center gap-1 text-xs text-gray-300 group-hover:text-white">
+                                {m.name} <ExternalLink size={10} />
+                            </div>
+                        </a>
+                    ))}
+                 </div>
+              </div>
+
+            </aside>
+          </div>
+        )}
+      </header>
     </>
   );
 }
