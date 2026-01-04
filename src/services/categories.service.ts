@@ -1,4 +1,5 @@
-import { Product } from "./types/product";
+
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -6,6 +7,16 @@ export async function getCategories() {
   const res = await fetch(`${API_URL}/categories`, { cache: "no-store" });
   const json = await res.json();
   return json.data;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  slug:string;
+  image: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
 }
 
 

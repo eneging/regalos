@@ -1,157 +1,140 @@
-// app/producto/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ShoppingCart, Heart, ChevronRight, Share2, Package, Tag } from "lucide-react";
+import Image from "next/image";
+import {
+  Heart,
+  ChevronRight,
+  Share2,
+  Package,
+  Tag,
+} from "lucide-react";
+import AddToCartButton from "./AddToCartButton";
 
-// 1. Función para obtener datos (Server Component)
+// ==========================
+// Server data fetch
+// ==========================
 async function getProduct(slug: string) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${slug}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/products/${slug}`,
+      { cache: "no-store" }
+    );
 
     if (!res.ok) return null;
 
     const json = await res.json();
     return json.success ? json.data : null;
-  } catch (error) {
-    console.error("Error fetching product:", error);
+  } catch {
     return null;
   }
 }
 
-// 2. Componente de Página
-export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const product = await getProduct(params.slug);
+// ==========================
+// Page (Next 15)
+// ==========================
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
 
-  if (!product) {
-    notFound();
-  }
+  const product = await getProduct(slug);
 
-  // Calculamos un descuento ficticio para diseño (opcional) o usamos lógica real si existe
-  const hasDiscount = false; 
+  if (!product) notFound();
+
+  const hasDiscount = false;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-zinc-950 text-white">
       <div className="container mx-auto px-4 py-10">
-        
-        {/* ==============================
-            BREADCRUMB (Navegación)
-           ============================== */}
+
+        {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-zinc-400 mb-8">
-          <Link href="/" className="hover:text-orange-500 transition-colors">
-            Inicio
-          </Link> 
+          <Link href="/" className="hover:text-orange-500">Inicio</Link>
           <ChevronRight className="w-4 h-4" />
-          <span className="hover:text-orange-500 transition-colors cursor-pointer">
-            {product.category?.name || "Catálogo"}
-          </span>
+          <span>{product.category?.name || "Catálogo"}</span>
           <ChevronRight className="w-4 h-4" />
           <span className="text-white font-medium truncate max-w-[200px]">
             {product.name}
           </span>
         </nav>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          
-          {/* ==============================
-              COLUMNA IZQUIERDA: IMAGEN
-             ============================== */}
-          <div className="relative group rounded-3xl bg-zinc-900 border border-zinc-800 p-8 flex items-center justify-center overflow-hidden shadow-2xl">
-            {/* Efecto de luz de fondo */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
+        <div className="grid lg:grid-cols-2 gap-12">
+
+          {/* Imagen */}
+          <div className="relative rounded-3xl bg-zinc-900 border border-zinc-800 p-8 flex items-center justify-center">
             {product.image ? (
-              <image
-                src={product.image} 
-                alt={product.name} 
-                className="relative z-10 max-h-[500px] w-auto object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
+              <Image
+                src={product.image}
+                alt={product.name}
+                width={500}
+                height={700}
+                className="object-contain drop-shadow-2xl"
+                priority
               />
             ) : (
-              <div className="h-96 flex flex-col items-center justify-center text-zinc-600 gap-4">
+              <div className="h-96 flex flex-col items-center justify-center text-zinc-600">
                 <Package className="w-16 h-16 opacity-20" />
                 <span>Sin imagen disponible</span>
               </div>
             )}
-
-            {/* Badge Flotante (Ejemplo: Nuevo o Descuento) */}
-            <div className="absolute top-4 left-4 z-20">
-              <span className="px-3 py-1 bg-zinc-800 border border-zinc-700 text-xs font-bold rounded-full text-white uppercase tracking-wider">
-                Original
-              </span>
-            </div>
           </div>
 
-          {/* ==============================
-              COLUMNA DERECHA: DETALLES
-             ============================== */}
-          <div className="flex flex-col">
-            
-            {/* Encabezado */}
-            <div className="mb-6 border-b border-zinc-800 pb-6">
-              <span className="text-orange-500 font-bold text-sm tracking-widest uppercase mb-2 block">
-                {product.category?.name || "Bebidas"}
-              </span>
-              <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-                {product.name}
-              </h1>
-              
-              <div className="flex items-end gap-4">
-                <div className="text-4xl font-bold text-white">
-                  S/ {Number(product.price).toFixed(2)}
-                </div>
-                {hasDiscount && (
-                  <span className="text-lg text-zinc-500 line-through mb-1">
-                    S/ {(Number(product.price) * 1.2).toFixed(2)}
-                  </span>
-                )}
+          {/* Detalles */}
+          <div>
+            <span className="text-orange-500 font-bold text-sm uppercase">
+              {product.category?.name || "Bebidas"}
+            </span>
+
+            <h1 className="text-3xl md:text-5xl font-extrabold my-4">
+              {product.name}
+            </h1>
+
+            <div className="flex items-end gap-4 mb-6">
+              <div className="text-4xl font-bold">
+                S/ {Number(product.price).toFixed(2)}
               </div>
+              {hasDiscount && (
+                <span className="text-lg line-through text-zinc-500">
+                  S/ {(Number(product.price) * 1.2).toFixed(2)}
+                </span>
+              )}
             </div>
 
-            {/* Descripción */}
-            <p className="text-zinc-400 leading-relaxed text-lg mb-8">
-                {/* Aquí iría product.description si existiera en la BD */}
-                Disfruta de la calidad excepcional de este {product.category?.name}. 
-                Ideal para celebraciones especiales o para darte un gusto refinado. 
-                Producto 100% original garantizado.
+            <p className="text-zinc-400 text-lg mb-8">
+              Producto original, ideal para celebraciones especiales.
             </p>
 
-            {/* Botones de Acción */}
+            {/* Botones */}
             <div className="flex flex-col sm:flex-row gap-4 mb-10">
-              <button className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg shadow-orange-900/20 flex items-center justify-center gap-2 transform active:scale-95">
-                <ShoppingCart className="w-5 h-5" />
-                Añadir al Carrito
-              </button>
-              
+              <AddToCartButton product={product} />
+
               <div className="flex gap-4">
-                <button className="p-4 rounded-xl border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white transition-all bg-zinc-900/50">
+                <button className="p-4 rounded-xl border border-zinc-700">
                   <Heart className="w-6 h-6" />
                 </button>
-                <button className="p-4 rounded-xl border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white transition-all bg-zinc-900/50">
+                <button className="p-4 rounded-xl border border-zinc-700">
                   <Share2 className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
-            {/* Meta Información (Grid) */}
-            <div className="grid grid-cols-2 gap-4 bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-zinc-800 rounded-lg text-orange-500">
-                   <Tag className="w-5 h-5" />
-                </div>
+            {/* Meta */}
+            <div className="grid grid-cols-2 gap-4 bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
+              <div className="flex gap-3">
+                <Tag className="w-5 h-5 text-orange-500" />
                 <div>
-                  <span className="block text-xs font-bold text-zinc-500 uppercase">SKU</span>
-                  <span className="text-sm font-medium text-white">{product.slug}</span>
+                  <span className="text-xs text-zinc-500">SKU</span>
+                  <span className="block">{product.slug}</span>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-zinc-800 rounded-lg text-orange-500">
-                   <Package className="w-5 h-5" />
-                </div>
+              <div className="flex gap-3">
+                <Package className="w-5 h-5 text-orange-500" />
                 <div>
-                  <span className="block text-xs font-bold text-zinc-500 uppercase">Disponibilidad</span>
-                  <span className="text-sm font-medium text-green-400">En Stock</span>
+                  <span className="text-xs text-zinc-500">Disponibilidad</span>
+                  <span className="block text-green-400">En stock</span>
                 </div>
               </div>
             </div>

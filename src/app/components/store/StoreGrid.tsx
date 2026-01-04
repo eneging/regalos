@@ -72,7 +72,7 @@ export default function StoreGrid({
             <div className="relative w-full aspect-[3/4] mb-4 overflow-hidden rounded-xl bg-black/20">
               <Image
                 src={
-                  product.image ||
+                  product.image_url ||
                   "https://res.cloudinary.com/dck9uinqa/image/upload/v1760996469/depositphotos_110689618-stock-photo-bottles-of-several-whiskey-brands_kbuky1.jpg"
                 }
                 alt={product.name}

@@ -68,7 +68,9 @@ export type Tool = {
 export interface Category {
   id: number;
   name: string;
+  
   image: string;
+   slug: string;
   description: string;
   created_at: string;
   updated_at: string;
@@ -76,7 +78,10 @@ export interface Category {
 
 export interface Product {
   id: number;
+  slug:string;
   name: string;
+  stock:number;
+
   description: string;
   price: number;
   image_url: string;
@@ -89,6 +94,7 @@ export interface Product {
   updated_at: string;
    product_category_id: number;
 }
+
 
 export interface CartItem {
   product: Product;
@@ -126,3 +132,22 @@ export type ProductFormData = Omit<Product, "id"> & {
 export type ProductPayload = Omit<Product, "id" | "image_url"> & {
   image_url?: string;
 };
+
+export interface CartProduct {
+ id: number;
+  slug:string;
+  name: string;
+  stock:number;
+ quantity:number;
+  description: string;
+  price: number;
+  image_url?: string;
+  is_offer: boolean;
+  offer_price?: number;
+  category: Category;  
+               // objeto Category completo
+  available: boolean;
+  created_at: string;
+  updated_at: string;
+   product_category_id: number;
+}

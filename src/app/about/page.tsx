@@ -2,13 +2,29 @@
 
 import Image from "next/image";
 import React, { Suspense } from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+/* =========================
+   🎬 Animaciones
+========================= */
+const fadeUp: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 40,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1], // ✅ easing válido TS
+    },
+  },
 };
 
+/* =========================
+   📚 Contenido
+========================= */
 const sections = [
   {
     title: "Un Sueño Hecho Realidad",
@@ -31,14 +47,30 @@ const sections = [
 ];
 
 const services = [
-  { icon: "🍽️", title: "Comida Criolla Auténtica", desc: "Platos llenos de sabor, historia y sazón casera." },
-  { icon: "🍹", title: "Bebidas Exquisitas", desc: "Cócteles de autor y bebidas refrescantes únicas." },
-  { icon: "🎉", title: "Eventos Inolvidables", desc: "El lugar perfecto para tus celebraciones y reuniones." },
+  {
+    icon: "🍽️",
+    title: "Comida Criolla Auténtica",
+    desc: "Platos llenos de sabor, historia y sazón casera.",
+  },
+  {
+    icon: "🍹",
+    title: "Bebidas Exquisitas",
+    desc: "Cócteles de autor y bebidas refrescantes únicas.",
+  },
+  {
+    icon: "🎉",
+    title: "Eventos Inolvidables",
+    desc: "El lugar perfecto para tus celebraciones y reuniones.",
+  },
 ];
 
+/* =========================
+   🚀 Componente
+========================= */
 function AboutUs() {
   return (
     <main className="min-h-screen bg-[#0e0e0e] text-white flex flex-col items-center px-4 py-12 md:py-20 overflow-hidden">
+      
       {/* HERO */}
       <motion.div
         variants={fadeUp}
@@ -51,7 +83,8 @@ function AboutUs() {
         </h1>
         <p className="text-gray-300 text-lg md:text-2xl leading-relaxed">
           Descubre la pasión detrás de cada plato y cada momento en{" "}
-          <strong className="text-orange-400">Puerto Rico Restobar</strong>. Somos más que un lugar para comer; somos una experiencia que deleita tus sentidos.
+          <strong className="text-orange-400">Puerto Rico Restobar</strong>. 
+          Somos más que un lugar para comer; somos una experiencia que deleita tus sentidos.
         </p>
       </motion.div>
 
@@ -69,7 +102,11 @@ function AboutUs() {
         >
           {/* Imagen */}
           <div className="w-full md:w-1/2">
-            <Suspense fallback={<div className="w-full h-80 bg-gray-800 animate-pulse rounded-full" />}>
+            <Suspense
+              fallback={
+                <div className="w-full h-80 bg-gray-800 animate-pulse rounded-full" />
+              }
+            >
               <Image
                 src={s.img}
                 alt={s.title}
@@ -82,7 +119,9 @@ function AboutUs() {
 
           {/* Texto */}
           <div className="w-full md:w-1/2 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-bold text-orange-400">{s.title}</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-orange-400">
+              {s.title}
+            </h2>
             {s.text.map((t, j) => (
               <p key={j} className="text-gray-300 text-lg leading-relaxed">
                 {t}
@@ -100,7 +139,10 @@ function AboutUs() {
         viewport={{ once: true, amount: 0.3 }}
         className="bg-gray-900/70 border border-gray-800 rounded-3xl shadow-md p-8 md:p-12 w-full max-w-6xl mb-16"
       >
-        <h2 className="text-4xl md:text-5xl font-bold text-orange-400 text-center mb-10">¿Qué Ofrecemos?</h2>
+        <h2 className="text-4xl md:text-5xl font-bold text-orange-400 text-center mb-10">
+          ¿Qué Ofrecemos?
+        </h2>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           {services.map((item, i) => (
             <motion.div
@@ -108,8 +150,12 @@ function AboutUs() {
               variants={fadeUp}
               className="bg-gray-950/70 rounded-2xl p-6 transition-transform duration-300 hover:scale-[1.03]"
             >
-              <div className="text-6xl mb-3 animate-bounce-slow">{item.icon}</div>
-              <h3 className="text-2xl font-semibold text-gray-100 mb-2">{item.title}</h3>
+              <div className="text-6xl mb-3 animate-bounce-slow">
+                {item.icon}
+              </div>
+              <h3 className="text-2xl font-semibold text-gray-100 mb-2">
+                {item.title}
+              </h3>
               <p className="text-gray-400">{item.desc}</p>
             </motion.div>
           ))}

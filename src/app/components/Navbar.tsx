@@ -5,11 +5,11 @@ import { useCart } from "../context/CartContext";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+
 import {
   Menu,
   X,
-  Search,
+ 
   ShoppingCart,
   User,
   Heart,
@@ -24,12 +24,12 @@ import {
 import SearchBar from "./SearchBar";
 
 export default function Navbar() {
-  const router = useRouter();
+
   const { cart } = useCart();
   const { openDrawer } = useCartDrawer();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [query, setQuery] = useState("");
+
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -69,12 +69,7 @@ export default function Navbar() {
     { name: "combos", href: "/combos" },
   ];
 
-  const handleSearch = (e: React.FormEvent) => {
-    e?.preventDefault();
-    if (!query.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-    setQuery("");
-  };
+
 
   return (
     <>

@@ -8,6 +8,7 @@ export interface Product {
   id: number;
   name: string;
   slug: string;
+  
   price: string;        // viene como string desde API
   stock: number;
   is_offer: number;     // 0 | 1

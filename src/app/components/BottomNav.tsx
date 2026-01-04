@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Search, Users, Sparkles, QrCode
+import { Home, Search, Sparkles, QrCode
      //Layers
      } from "lucide-react";
 

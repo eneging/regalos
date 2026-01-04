@@ -2,23 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { searchProducts } from "@/services/search.service";
 import Link from "next/link";
+import Image from "next/image";
 import { Loader2, Search } from "lucide-react";
 
-/* INTERFAZ SEGÚN ProductResource */
-interface Product {
-  id: number;
-  name: string;
-  slug: string;
-  price: number;
-  image_url?: string | null;
-  category?: {
-    id: number;
-    name: string;
-    slug: string;
-  } | null;
-}
+import { searchProducts } from "@/services/search.service";
+import type { Product } from "@/app/types";
 
 export default function SearchResultsPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -57,7 +46,8 @@ export default function SearchResultsPage() {
   return (
     <section className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">
-        Resultados para: <span className="text-orange-600">`{slug}`</span>
+        Resultados para:{" "}
+        <span className="text-orange-600">{slug}</span>
       </h1>
 
       {/* LOADING */}
@@ -83,12 +73,14 @@ export default function SearchResultsPage() {
             href={`/producto/${product.slug}`}
             className="border rounded-xl p-4 hover:shadow-md transition"
           >
-            <div className="aspect-square bg-gray-50 rounded-lg mb-3 flex items-center justify-center">
+            <div className="aspect-square bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
               {product.image_url ? (
-                <img
+                <Image
                   src={product.image_url}
                   alt={product.name}
-                  className="object-contain h-full"
+                  width={300}
+                  height={300}
+                  className="object-contain h-full w-full"
                 />
               ) : (
                 <Search className="w-6 h-6 text-gray-300" />
@@ -107,7 +99,6 @@ export default function SearchResultsPage() {
 
             <p className="font-bold mt-2">
               S/ {Number(product.price).toFixed(2)}
-
             </p>
           </Link>
         ))}

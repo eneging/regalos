@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { useCart } from "@/app/context/CartContext";
 import { useAuth } from "@/app/context/AuthContext";
@@ -28,6 +28,8 @@ export default function CheckoutCulqi({ total }: { total: number }) {
   const [orderId, setOrderId] = useState<number | null>(null);
   const [pendingPayment, setPendingPayment] = useState(false);
 
+  const resumedRef = useRef(false);
+
   /* =========================
      🔑 INIT CULQI (1 SOLA VEZ)
   ========================= */
@@ -41,7 +43,7 @@ export default function CheckoutCulqi({ total }: { total: number }) {
   /* =========================
      🟢 BOTÓN PAGAR
   ========================= */
-  const handlePay = async () => {
+  const handlePay = useCallback(async () => {
     if (!isAuthenticated) {
       setPendingPayment(true);
       setShowAuth(true);
@@ -61,7 +63,6 @@ export default function CheckoutCulqi({ total }: { total: number }) {
     setLoading(true);
 
     try {
-      /* 1️⃣ CREAR ORDEN */
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/orders`,
         {
@@ -89,30 +90,29 @@ export default function CheckoutCulqi({ total }: { total: number }) {
 
       setOrderId(data.data.order_id);
 
-      /* 2️⃣ CONFIGURAR CHECKOUT */
       window.Culqi.settings({
         title: "Puerto Rico",
         currency: "PEN",
         amount: Math.round(total * 100),
       });
 
-      /* 3️⃣ ABRIR CHECKOUT */
       window.Culqi.open();
     } catch (error: any) {
       toast.error(error.message);
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, cart, token, total]);
 
   /* =========================
      🔁 RETOMAR DESPUÉS LOGIN
   ========================= */
   useEffect(() => {
-    if (isAuthenticated && pendingPayment) {
+    if (isAuthenticated && pendingPayment && !resumedRef.current) {
+      resumedRef.current = true;
       setPendingPayment(false);
       handlePay();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, pendingPayment, handlePay]);
 
   /* =========================
      💳 CALLBACK OFICIAL CULQI
@@ -141,8 +141,6 @@ export default function CheckoutCulqi({ total }: { total: number }) {
               order_id: orderId,
               token: window.Culqi.token.id,
               email: window.Culqi.token.email,
-
-              /* 🔴 CAMPOS OBLIGATORIOS */
               first_name: user?.name || "Cliente",
               last_name: "Puerto Rico",
               phone: "999999999",
@@ -165,7 +163,7 @@ export default function CheckoutCulqi({ total }: { total: number }) {
         setLoading(false);
       }
     };
-  }, [orderId, token, user]);
+  }, [orderId, token, user, clearCart]);
 
   /* =========================
      🖱️ UI

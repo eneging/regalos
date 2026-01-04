@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import type{ Variants } from "framer-motion";
+
 import {
-  ArrowRight,
+ 
   ShoppingCart,
   Zap,
   Truck,
@@ -22,13 +24,15 @@ import {
 import Image from "next/image";
 import { FiX } from "react-icons/fi";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 
 // Hooks & Services
 import OfferProducts from "../store/OfferProducts"; 
 import { useCart } from "@/app/context/CartContext"; 
 import { useStoreData } from "@/app/hooks/useStoreData";
 import { Category } from "@/services/categories.service";
+
+
 import { Product } from "@/app/types";
 import SearchBar from "../SearchBar";
 
@@ -65,10 +69,7 @@ const ALLOWED_CATEGORIES = [
   "tequenos-y-piqueos", "para-picar"
 ];
 
-const variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-};
+
 
 // =====================================================================
 // 🚀 3. Componente Principal
@@ -79,7 +80,7 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
   
   // Usamos el hook solo para productos, ya que las categorías vienen por props
   const { products, loading } = useStoreData();
-  const router = useRouter();
+
 
   // --- Lógica Modal (Timer) ---
   useEffect(() => {
@@ -112,6 +113,22 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
     })
     .sort((a, b) => b.discount - a.discount)
     .slice(0, 8);
+
+const variants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 20,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1], // ✅ easing válido
+    },
+  },
+};
+
 
   return (
     <main className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-orange-500 selection:text-white overflow-x-hidden">

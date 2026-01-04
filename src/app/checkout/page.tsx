@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { useCart } from "../context/CartContext";
 
 
-import YapeForm from "../components/YapeForm";
 import CheckoutCulqi from "../components/CheckoutCulqi";
 
 export default function CheckoutPage() {
@@ -78,10 +77,6 @@ export default function CheckoutPage() {
 
       
 
-        {/* 🟢 YAPE */}
-        <div className="mt-5">
-          <YapeForm />
-        </div>
 
       </div>
     </div>
