@@ -12,7 +12,7 @@ export default async function Page() {
   return (
     <HomeView
       categories={safeCategories}
-      products={[]} // 👈 vacío por ahora
+      products={[]} 
     />
   );
 }
