@@ -1,4 +1,6 @@
 // app/page.tsx
+
+export const dynamic = "force-dynamic";
 import { getCategories } from "@/services/categories.service";
 import HomeView from "@/app/components/home/HomeView";
 
