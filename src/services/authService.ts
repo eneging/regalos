@@ -1,7 +1,8 @@
-// src/services/authService.ts
+"use client";
+
 import Cookies from "js-cookie";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /* =====================================================
    COOKIE OPTIONS
@@ -19,15 +20,16 @@ function cookieOptions(days = 7) {
    AUTH REQUESTS
 ===================================================== */
 
-/**
- * LOGIN
- */
 export async function login(email: string, password: string) {
+  if (!API_URL) {
+    throw new Error("API no configurada");
+  }
+
   const res = await fetch(`${API_URL}/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json", // 🔥 CLAVE
+      Accept: "application/json",
     },
     body: JSON.stringify({ email, password }),
   });
@@ -44,20 +46,21 @@ export async function login(email: string, password: string) {
   };
 }
 
-/**
- * REGISTER
- */
 export async function register(
   name: string,
   email: string,
   password: string,
   password_confirmation: string
 ) {
+  if (!API_URL) {
+    throw new Error("API no configurada");
+  }
+
   const res = await fetch(`${API_URL}/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json", // 🔥 IMPORTANTE
+      Accept: "application/json",
     },
     body: JSON.stringify({
       name,
@@ -80,16 +83,15 @@ export async function register(
 }
 
 /* =====================================================
-   AUTH STORAGE
+   AUTH STORAGE (CLIENT ONLY)
 ===================================================== */
 
 export function saveAuth(token: string, user: any, days = 7) {
+  if (typeof window === "undefined") return;
   if (!token || !user) return;
 
-  if (typeof window !== "undefined") {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-  }
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
 
   Cookies.set("auth_token", token, cookieOptions(days));
 
@@ -98,27 +100,27 @@ export function saveAuth(token: string, user: any, days = 7) {
   }
 }
 
-/**
- * Limpiar auth completamente
- */
 export function clearAuth() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  }
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 
   Cookies.remove("auth_token");
   Cookies.remove("role");
 }
 
-/**
- * Logout backend + cleanup local
- */
+/* =====================================================
+   LOGOUT
+===================================================== */
+
 export async function logout() {
+  if (typeof window === "undefined") return;
+
   const token = getToken();
 
   try {
-    if (token) {
+    if (token && API_URL) {
       await fetch(`${API_URL}/logout`, {
         method: "POST",
         headers: {
@@ -135,19 +137,17 @@ export async function logout() {
 }
 
 /* =====================================================
-   GETTERS
+   GETTERS (CLIENT SAFE)
 ===================================================== */
 
 export function getToken(): string | null {
-  if (typeof window !== "undefined") {
-    return (
-      localStorage.getItem("token") ||
-      Cookies.get("auth_token") ||
-      null
-    );
-  }
+  if (typeof window === "undefined") return null;
 
-  return Cookies.get("auth_token") || null;
+  return (
+    localStorage.getItem("token") ||
+    Cookies.get("auth_token") ||
+    null
+  );
 }
 
 export function getUser(): any | null {
@@ -165,29 +165,36 @@ export function getUser(): any | null {
 }
 
 export function getRole(): string | null {
-  const user = getUser();
-  return user?.role || Cookies.get("role") || null;
+  if (typeof window === "undefined") return null;
+
+  return getUser()?.role || Cookies.get("role") || null;
 }
 
 /* =====================================================
-   FETCH WITH AUTH
+   FETCH WITH AUTH (CLIENT ONLY)
 ===================================================== */
 
 export async function fetchWithAuth(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
+  if (typeof window === "undefined") {
+    throw new Error("fetchWithAuth solo puede usarse en el cliente");
+  }
+
+  if (!API_URL) {
+    throw new Error("API no configurada");
+  }
+
   const token = getToken();
   const url = path.startsWith("http") ? path : `${API_URL}${path}`;
 
   const headers = new Headers(init.headers || {});
+  headers.set("Accept", "application/json");
 
-  // ⚠️ solo setear Content-Type si hay body
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-
-  headers.set("Accept", "application/json");
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);

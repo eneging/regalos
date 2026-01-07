@@ -1,33 +1,37 @@
 import { Product } from "../services/types/product";
 
 /* ================================
-   API CONFIG
+   API CONFIG (SAFE)
 ================================ */
 
-const API = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API) {
-  throw new Error("❌ NEXT_PUBLIC_API_URL no está definida");
-}
+const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /* ================================
    GET ALL PRODUCTS
 ================================ */
 
 export async function getProducts(): Promise<Product[]> {
-  const res = await fetch(`${API}/products`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    console.error("Error cargando productos:", res.status);
+  if (!API) {
+    console.error("NEXT_PUBLIC_API_URL no definida");
     return [];
   }
 
-  const json = await res.json();
+  try {
+    const res = await fetch(`${API}/products`, {
+      cache: "no-store",
+    });
 
-  // API: { success, data, meta }
-  return json?.data ?? [];
+    if (!res.ok) {
+      console.error("Error cargando productos:", res.status);
+      return [];
+    }
+
+    const json = await res.json();
+    return json?.data ?? [];
+  } catch (error) {
+    console.error("getProducts fetch error:", error);
+    return [];
+  }
 }
 
 /* ================================
@@ -35,21 +39,24 @@ export async function getProducts(): Promise<Product[]> {
 ================================ */
 
 export async function getProduct(slug: string): Promise<Product | null> {
-  if (!slug) return null;
+  if (!slug || !API) return null;
 
-  const res = await fetch(`${API}/products/${slug}`, {
-    cache: "no-store",
-  });
+  try {
+    const res = await fetch(`${API}/products/${slug}`, {
+      cache: "no-store",
+    });
 
-  if (!res.ok) {
-    console.error("Producto no encontrado:", slug);
+    if (!res.ok) {
+      console.error("Producto no encontrado:", slug);
+      return null;
+    }
+
+    const json = await res.json();
+    return json?.data ?? null;
+  } catch (error) {
+    console.error("getProduct fetch error:", error);
     return null;
   }
-
-  const json = await res.json();
-
-  // API: { success, data }
-  return json?.data ?? null;
 }
 
 /* ================================
@@ -57,15 +64,22 @@ export async function getProduct(slug: string): Promise<Product | null> {
 ================================ */
 
 export async function getOffers(): Promise<Product[]> {
-  const res = await fetch(`${API}/products?offer=true`, {
-    cache: "no-store",
-  });
+  if (!API) return [];
 
-  if (!res.ok) {
-    console.error("Error cargando ofertas:", res.status);
+  try {
+    const res = await fetch(`${API}/products?offer=true`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Error cargando ofertas:", res.status);
+      return [];
+    }
+
+    const json = await res.json();
+    return json?.data ?? [];
+  } catch (error) {
+    console.error("getOffers fetch error:", error);
     return [];
   }
-
-  const json = await res.json();
-  return json?.data ?? [];
 }

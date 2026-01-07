@@ -1,14 +1,10 @@
 import { Product } from "@/app/types";
 
 /* ================================
-   API CONFIG
+   API CONFIG (SAFE)
 ================================ */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
-  throw new Error("❌ NEXT_PUBLIC_API_URL no está definida");
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /* ================================
    TYPES
@@ -32,7 +28,8 @@ export async function searchProducts(
   query: string,
   page = 1
 ): Promise<SearchResponse> {
-  if (!query) {
+  if (!query || !API_URL) {
+    if (!API_URL) console.error("NEXT_PUBLIC_API_URL no definida");
     return {
       success: true,
       data: [],
@@ -102,7 +99,10 @@ export async function searchProducts(
 export async function autocompleteProducts(
   query: string
 ): Promise<Product[]> {
-  if (!query || query.length < 2) return [];
+  if (!query || query.length < 2 || !API_URL) {
+    if (!API_URL) console.error("NEXT_PUBLIC_API_URL no definida");
+    return [];
+  }
 
   try {
     const res = await fetch(

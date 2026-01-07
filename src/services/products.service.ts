@@ -1,14 +1,10 @@
 import { Product } from "@/app/types";
 
 /* ================================
-   API CONFIG
+   API CONFIG (SAFE PARA SSR)
 ================================ */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
-  throw new Error("❌ NEXT_PUBLIC_API_URL no está definida");
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /* ================================
    TYPES
@@ -32,7 +28,11 @@ export async function searchProducts(
   query: string,
   page = 1
 ): Promise<SearchResponse> {
-  if (!query) {
+  if (!query || !API_URL) {
+    if (!API_URL) {
+      console.error("❌ NEXT_PUBLIC_API_URL no está definida");
+    }
+
     return {
       success: true,
       data: [],
@@ -48,15 +48,41 @@ export async function searchProducts(
     query
   )}&page=${page}`;
 
-  const res = await fetch(url, {
-    cache: "no-store",
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  try {
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
-  if (!res.ok) {
-    console.error("SEARCH FAILED:", res.status, url);
+    if (!res.ok) {
+      console.error("SEARCH FAILED:", res.status, url);
+      return {
+        success: false,
+        data: [],
+        meta: {
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+        },
+      };
+    }
+
+    const json = await res.json();
+
+    return {
+      success: json?.success ?? true,
+      data: json?.data ?? [],
+      meta: json?.meta ?? {
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+      },
+    };
+  } catch (error) {
+    console.error("SEARCH ERROR:", error);
+
     return {
       success: false,
       data: [],
@@ -67,16 +93,21 @@ export async function searchProducts(
       },
     };
   }
-
-  return res.json();
 }
 
 /* ================================
    AUTOCOMPLETE (HOME / NAV)
 ================================ */
 
-export async function autocompleteProducts(term: string): Promise<Product[]> {
-  if (!term || term.length < 2) return [];
+export async function autocompleteProducts(
+  term: string
+): Promise<Product[]> {
+  if (!term || term.length < 2 || !API_URL) {
+    if (!API_URL) {
+      console.error("❌ NEXT_PUBLIC_API_URL no está definida");
+    }
+    return [];
+  }
 
   try {
     const res = await fetch(

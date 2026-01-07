@@ -1,8 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+/* ================================
+   API CONFIG (SAFE PARA SSR)
+================================ */
 
-if (!API_URL) {
-  throw new Error("❌ NEXT_PUBLIC_API_URL no está definida");
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /* ================================
    CATEGORÍAS
@@ -18,18 +18,32 @@ export interface Category {
   updated_at: string;
 }
 
-export async function getCategories(): Promise<Category[]> {
-  const res = await fetch(`${API_URL}/categories`, {
-    cache: "no-store",
-  });
+/* ================================
+   GET CATEGORIES
+================================ */
 
-  if (!res.ok) {
-    console.error("Error al cargar categorías:", res.status);
+export async function getCategories(): Promise<Category[]> {
+  if (!API_URL) {
+    console.error("❌ NEXT_PUBLIC_API_URL no está definida");
     return [];
   }
 
-  const json = await res.json();
-  return json?.data ?? [];
+  try {
+    const res = await fetch(`${API_URL}/categories`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Error al cargar categorías:", res.status);
+      return [];
+    }
+
+    const json = await res.json();
+    return json?.data ?? [];
+  } catch (error) {
+    console.error("GET CATEGORIES ERROR:", error);
+    return [];
+  }
 }
 
 /* ================================
@@ -37,17 +51,11 @@ export async function getCategories(): Promise<Category[]> {
 ================================ */
 
 export async function getProductsByCategory(slug: string) {
-  if (!slug) {
-    throw new Error("Slug de categoría requerido");
-  }
+  if (!slug || !API_URL) {
+    if (!API_URL) {
+      console.error("❌ NEXT_PUBLIC_API_URL no está definida");
+    }
 
-  const res = await fetch(
-    `${API_URL}/categories/${slug}/products`,
-    { cache: "no-store" }
-  );
-
-  if (!res.ok) {
-    console.error("Error fetching category products:", res.status);
     return {
       category: null,
       products: [],
@@ -55,11 +63,34 @@ export async function getProductsByCategory(slug: string) {
     };
   }
 
-  const json = await res.json();
+  try {
+    const res = await fetch(
+      `${API_URL}/categories/${slug}/products`,
+      { cache: "no-store" }
+    );
 
-  return {
-    category: json?.data?.category ?? null,
-    products: json?.data?.products ?? [],
-    meta: json?.data?.meta ?? null,
-  };
+    if (!res.ok) {
+      console.error("Error fetching category products:", res.status);
+      return {
+        category: null,
+        products: [],
+        meta: null,
+      };
+    }
+
+    const json = await res.json();
+
+    return {
+      category: json?.data?.category ?? null,
+      products: json?.data?.products ?? [],
+      meta: json?.data?.meta ?? null,
+    };
+  } catch (error) {
+    console.error("GET PRODUCTS BY CATEGORY ERROR:", error);
+    return {
+      category: null,
+      products: [],
+      meta: null,
+    };
+  }
 }
