@@ -44,8 +44,8 @@ export async function requestDownload(productId: number, token: string) {
 import type { Product } from "../types"; // Asegúrate de que Product esté definido en types.ts
 import type { User } from "../types"; // <-- Asumo que también tienes una interfaz User en types.ts
 
-const API = "https://api.puertoricoica.online/api";
-const API2 =  "https://api.puertoricoica.online/api";
+const API =`${process.env.NEXT_PUBLIC_API_URL}`;
+const API2 = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 
 const apiClient = axios.create({

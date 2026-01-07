@@ -1,44 +1,70 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import type{ Variants } from "framer-motion";
-
-import {
- 
-  ShoppingCart,
-  Zap,
-  Truck,
-  ShieldCheck,
-  Star,
-  Beer,
-  Wine,
-  Martini,
-  GlassWater,
-  Utensils,
-  PartyPopper,
-  Gift,
-  Droplets,
-  ChevronRight
-} from "lucide-react";
+import { 
+  motion, 
+  AnimatePresence, 
+  useScroll, 
+  useTransform, 
+  type Variants // 👈 Importante: Importamos el tipo para evitar el error
+} from "framer-motion";
 import Image from "next/image";
-import { FiX } from "react-icons/fi";
 import Link from "next/link";
-
+import { FiX } from "react-icons/fi";
+import {
+  ShoppingCart, Zap, Truck, ShieldCheck, Star, Beer, Wine, 
+  Martini, GlassWater, Utensils, PartyPopper, Gift, Droplets, ChevronRight
+} from "lucide-react";
 
 // Hooks & Services
 import OfferProducts from "../store/OfferProducts"; 
 import { useCart } from "@/app/context/CartContext"; 
 import { useStoreData } from "@/app/hooks/useStoreData";
 import { Category } from "@/services/categories.service";
-
-
-import { Product } from "@/app/types";
+import { Product } from "@/app/types"; // Asegúrate de que esta ruta sea correcta según tu proyecto
 import SearchBar from "../SearchBar";
 
 // =====================================================================
-// 🎨 1. Iconos Dinámicos
+// 🎨 VARIANTES DE ANIMACIÓN (Tipadas correctamente)
 // =====================================================================
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    // 👇 "as const" asegura a TS que "spring" es el valor exacto
+    transition: { type: "spring" as const, stiffness: 50, damping: 20 } 
+  },
+};
+
+const floatingAnimation: Variants = {
+  animate: {
+    y: [0, -15, 0],
+    rotate: [0, 1, 0, -1, 0],
+    transition: {
+      duration: 6,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+};
+
+// =====================================================================
+// 🧩 COMPONENTES AUXILIARES
+// =====================================================================
+
 const CategoryIcon = ({ slug }: { slug: string }) => {
   const s = slug ? slug.toLowerCase() : "";
   const className = "w-6 h-6 md:w-8 md:h-8";
@@ -54,12 +80,9 @@ const CategoryIcon = ({ slug }: { slug: string }) => {
   return <PartyPopper className={className} />;
 };
 
-// =====================================================================
-// 📋 2. Props y Configuración
-// =====================================================================
 interface HomeViewProps {
   categories: Category[];
-  products?: Product[]; // Opcional por si decides pasarlos por props en el futuro
+  products?: Product[];
 }
 
 const ALLOWED_CATEGORIES = [
@@ -69,38 +92,39 @@ const ALLOWED_CATEGORIES = [
   "tequenos-y-piqueos", "para-picar"
 ];
 
-
-
 // =====================================================================
-// 🚀 3. Componente Principal
+// 🚀 COMPONENTE PRINCIPAL
 // =====================================================================
+
 export default function HomeView({ categories = [] }: HomeViewProps) {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const { addToCart } = useCart();
-  
-  // Usamos el hook solo para productos, ya que las categorías vienen por props
   const { products, loading } = useStoreData();
+  const { scrollY } = useScroll();
 
+  // Parallax suave para el fondo
+  const yBackground = useTransform(scrollY, [0, 1000], [0, 200]);
 
-  // --- Lógica Modal (Timer) ---
+  // --- Lógica Modal ---
   useEffect(() => {
-    const closedAt = localStorage.getItem("offerModalClosedAt");
-    const now = Date.now();
-    const expiration = 10 * 60 * 1000; // 10 minutos
-    
-    // Solo activamos el modal si ya cargaron los productos y pasó el tiempo
-    if (!loading && (!closedAt || now - parseInt(closedAt) > expiration)) {
-      const timer = setTimeout(() => setShowOfferModal(true), 3000);
-      return () => clearTimeout(timer);
+    // Verificamos window para asegurar que corre en cliente
+    if (typeof window !== "undefined") {
+        const closedAt = localStorage.getItem("offerModalClosedAt");
+        const now = Date.now();
+        const expiration = 10 * 60 * 1000; 
+      
+        if (!loading && (!closedAt || now - parseInt(closedAt) > expiration)) {
+          const timer = setTimeout(() => setShowOfferModal(true), 3000);
+          return () => clearTimeout(timer);
+        }
     }
-  }, [loading]);
+  }, [loading, products]);
 
   const handleCloseModal = () => {
     localStorage.setItem("offerModalClosedAt", Date.now().toString());
     setShowOfferModal(false);
   };
 
-  // --- Filtros de Datos (Usando la prop categories) ---
   const filteredCategories = (categories || []).filter(cat => 
     ALLOWED_CATEGORIES.includes(cat.slug)
   );
@@ -112,28 +136,12 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
       return { ...p, discount };
     })
     .sort((a, b) => b.discount - a.discount)
-    .slice(0, 8);
-
-const variants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.16, 1, 0.3, 1], // ✅ easing válido
-    },
-  },
-};
-
+    .slice(0, 10);
 
   return (
     <main className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-orange-500 selection:text-white overflow-x-hidden">
       
-      {/* --- MODAL DE OFERTAS --- */}
+      {/* --- MODAL (Con efecto Bounce) --- */}
       <AnimatePresence>
         {showOfferModal && (
           <motion.div 
@@ -143,18 +151,19 @@ const variants: Variants = {
             className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden"
+              initial={{ scale: 0.5, opacity: 0, y: 100 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 100 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl relative overflow-hidden ring-1 ring-orange-500/20"
             >
               <button 
                 onClick={handleCloseModal} 
-                className="absolute top-4 right-4 z-20 p-2 bg-black/50 text-white rounded-full hover:bg-orange-500 transition-colors"
+                className="absolute top-4 right-4 z-20 p-2 bg-black/50 text-white rounded-full hover:bg-orange-500 transition-colors hover:rotate-90 duration-300"
               >
                 <FiX size={20} />
               </button>
-              <div className="p-2 md:p-6">
+              <div className="p-1">
                 <OfferProducts />
               </div>
             </motion.div>
@@ -163,234 +172,265 @@ const variants: Variants = {
       </AnimatePresence>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative w-full min-h-[85vh] flex items-center justify-center bg-zinc-950 overflow-hidden pt-20">
+      <section className="relative w-full min-h-[90vh] flex items-center justify-center bg-zinc-950 overflow-hidden pt-20">
         
-        {/* Efectos de fondo */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-900/20 via-zinc-950 to-zinc-950" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 mix-blend-overlay"></div>
+        {/* Fondo con Parallax sutil */}
+        <motion.div style={{ y: yBackground }} className="absolute inset-0 pointer-events-none">
+             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px]" />
+             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[120px]" />
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
+        </motion.div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 grid lg:grid-cols-2 items-center gap-12">
           
+          {/* Texto Hero */}
           <motion.div 
-            variants={variants} 
-            initial="hidden" 
-            animate="visible" 
-            className="flex flex-col gap-8 max-w-2xl"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="flex flex-col gap-6 max-w-2xl order-2 lg:order-1"
           >
-            {/* Badge Envío */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 w-fit backdrop-blur-sm">
-              <Zap size={16} className="text-orange-500 fill-orange-500" />
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 w-fit backdrop-blur-sm">
+              <Zap size={16} className="text-orange-500 fill-orange-500 animate-pulse" />
               <span className="text-orange-400 text-xs md:text-sm font-bold tracking-wide uppercase">Envío Flash en Ica</span>
-            </div>
+            </motion.div>
 
-            {/* Titulo */}
-            <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-[1.1] tracking-tight">
+            <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.95] tracking-tighter">
               La fiesta <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 animate-pulse">
                 llega a ti.
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-zinc-400 text-lg md:text-xl leading-relaxed max-w-lg">
-              Licores premium, cervezas heladas y complementos entregados en minutos.
-            </p>
+            <motion.p variants={itemVariants} className="text-zinc-400 text-lg md:text-xl leading-relaxed max-w-lg">
+              Licores premium, cervezas heladas y complementos entregados en minutos. <span className="text-white font-medium">Sin salir de casa.</span>
+            </motion.p>
 
-            {/* SearchBar (Diseño Negro/Naranja) */}
-            <div className="w-full max-w-md shadow-2xl shadow-orange-900/20 rounded-2xl z-50">
+            <motion.div variants={itemVariants} className="w-full max-w-md shadow-2xl shadow-orange-900/20 rounded-2xl z-50 transform hover:scale-[1.02] transition-transform duration-300">
               <SearchBar />
-            </div>
+            </motion.div>
             
-            {/* Badges de confianza mini */}
-            <div className="flex items-center gap-6 text-sm text-zinc-500 pt-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={16} /> <span>100% Original</span>
+            <motion.div variants={itemVariants} className="flex items-center gap-6 text-sm text-zinc-500 pt-4">
+              <div className="flex items-center gap-2 hover:text-orange-400 transition-colors cursor-default">
+                <ShieldCheck size={18} /> <span>100% Original</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Truck size={16} /> <span>Delivery Express</span>
+              <div className="flex items-center gap-2 hover:text-orange-400 transition-colors cursor-default">
+                <Truck size={18} /> <span>Delivery Express</span>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
 
-          {/* Imagen Hero */}
+          {/* Imagen Hero Flotante */}
           <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative hidden lg:flex justify-center items-center"
+            className="relative hidden lg:flex justify-center items-center order-1 lg:order-2 perspective-1000"
           >
-             <div className="absolute w-[500px] h-[500px] bg-orange-600/20 rounded-full blur-[100px] animate-pulse" />
-             <Image
-                src="https://res.cloudinary.com/dck9uinqa/image/upload/v1760996469/depositphotos_110689618-stock-photo-bottles-of-several-whiskey-brands_kbuky1.jpg"
-                alt="Botellas Premium"
-                width={600}
-                height={700}
-                priority
-                className="relative z-10 drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-in-out object-contain"
-              />
+             <div className="absolute w-[400px] h-[400px] bg-gradient-to-tr from-orange-500/30 to-amber-600/30 rounded-full blur-[80px] animate-pulse" />
+             
+             <motion.div variants={floatingAnimation} animate="animate" className="relative z-10 w-full h-auto flex justify-center">
+               <Image
+                 src="https://res.cloudinary.com/dck9uinqa/image/upload/v1760996469/depositphotos_110689618-stock-photo-bottles-of-several-whiskey-brands_kbuky1.jpg"
+                 alt="Botellas Premium"
+                 width={700}
+                 height={800}
+                 priority
+                 className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+               />
+             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* --- CATEGORÍAS (Scroll Horizontal UX Mejorado) --- */}
-      {/* Usamos sticky top-0 con backdrop-blur para que se vea moderno al hacer scroll */}
-      <div className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-lg border-b border-white/5 py-4">
-        <div className="max-w-7xl mx-auto px-4 relative group">
-            
-            {/* Sombras laterales para indicar scroll */}
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none md:hidden" />
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none md:hidden" />
-
-            <div className="overflow-x-auto pb-2 hide-scrollbar scroll-smooth snap-x snap-mandatory">
-                <div className="flex gap-3 md:justify-center min-w-max px-2">
-                  {/* Validamos si hay categorías en las props */}
+      {/* --- CATEGORÍAS --- */}
+      <motion.div 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 1, duration: 0.5 }}
+        className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-lg shadow-black/50"
+      >
+        <div className="max-w-7xl mx-auto px-4 relative">
+            <div className="overflow-x-auto pb-2 hide-scrollbar scroll-smooth">
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  className="flex gap-3 md:justify-center min-w-max px-2"
+                >
                   {filteredCategories.length > 0 ? (
                     filteredCategories.map((cat) => (
-                        <Link 
-                          key={cat.id} 
-                          href={`/categoria/${cat.slug}`} 
-                          className="snap-center flex items-center gap-2 px-5 py-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-orange-500 hover:bg-zinc-800 transition-all group active:scale-95"
-                        >
-                            <span className="text-orange-500 group-hover:scale-110 group-hover:text-orange-400 transition-transform">
-                                <CategoryIcon slug={cat.slug} />
-                            </span>
-                            <span className="text-zinc-300 font-bold group-hover:text-white capitalize text-sm whitespace-nowrap">
-                                {cat.name}
-                            </span>
-                        </Link>
+                        <motion.div key={cat.id} variants={itemVariants}>
+                          <Link 
+                            href={`/categoria/${cat.slug}`} 
+                            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-orange-500 hover:bg-zinc-800 transition-all group active:scale-95 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)]"
+                          >
+                              <span className="text-orange-500 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-300">
+                                  <CategoryIcon slug={cat.slug} />
+                              </span>
+                              <span className="text-zinc-300 font-bold group-hover:text-white capitalize text-sm whitespace-nowrap">
+                                  {cat.name}
+                              </span>
+                          </Link>
+                        </motion.div>
                     ))
                   ) : (
-                    // Fallback visual si el array viene vacío
                     <div className="flex gap-2 w-full justify-center">
-                       {[1,2,3,4].map(i => (
-                         <div key={i} className="w-32 h-12 bg-zinc-900 rounded-xl animate-pulse border border-zinc-800" />
-                       ))}
+                        {[1,2,3,4].map(i => (
+                          <div key={i} className="w-32 h-12 bg-zinc-900 rounded-xl animate-pulse border border-zinc-800" />
+                        ))}
                     </div>
                   )}
-                </div>
+                </motion.div>
             </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* --- BEST SELLERS / OFERTAS --- */}
-      <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+      {/* --- OFERTAS --- */}
+      <section className="py-24 px-4 md:px-8 max-w-7xl mx-auto relative">
+        <div className="absolute top-20 left-0 w-64 h-64 bg-orange-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4"
+        >
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
-                Ofertas Relámpago <Zap className="text-orange-500 animate-pulse fill-orange-500" size={24}/>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                Ofertas Relámpago <Zap className="text-yellow-500 fill-yellow-500 animate-bounce" size={28}/>
               </h2>
-              <p className="text-zinc-400 text-sm md:text-base">
-                Precios bajos por tiempo limitado.
-              </p>
+              <p className="text-zinc-400">Precios bajos por tiempo limitado.</p>
             </div>
-            <Link href="/promociones" className="group flex items-center gap-2 text-orange-500 font-semibold hover:text-white transition-colors">
+            <Link href="/promociones" className="group flex items-center gap-2 text-orange-500 font-bold hover:text-white transition-colors bg-orange-500/10 px-4 py-2 rounded-full">
                 Ver todas <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
             </Link>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
+        >
           {loading ? (
-             // Skeletons Products
              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bg-zinc-900 rounded-2xl h-80 animate-pulse" />
+                <div key={i} className="bg-zinc-900 rounded-3xl h-80 animate-pulse border border-zinc-800" />
              ))
           ) : offers.length > 0 ? (
             offers.map((item) => (
-              <div
+              <motion.div
                 key={item.id}
-                className="group relative bg-zinc-900 rounded-2xl border border-zinc-800 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-900/10 flex flex-col overflow-hidden"
+                variants={itemVariants}
+                whileHover={{ y: -10, transition: { duration: 0.2 } }}
+                className="group relative bg-zinc-900 rounded-3xl border border-zinc-800 hover:border-orange-500/50 transition-colors hover:shadow-2xl hover:shadow-orange-900/10 flex flex-col overflow-hidden"
               >
-                {/* Badge Descuento */}
-                <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded-md shadow-lg">
+                <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-[10px] md:text-xs font-black px-2.5 py-1 rounded-lg shadow-lg rotate-[-2deg] group-hover:rotate-0 transition-transform">
                   -{item.discount}%
                 </div>
 
-                {/* Imagen + Link */}
-                <Link href={`/producto/${item.slug}`} className="relative w-full aspect-[4/5] bg-zinc-800/50 p-4">
+                <Link href={`/producto/${item.slug}`} className="relative w-full aspect-[4/5] bg-gradient-to-b from-zinc-800/30 to-transparent p-6 overflow-hidden">
                   <Image
                     src={
                       item.image_url && item.image_url.startsWith("http")
                         ? item.image_url
-                        : "/placeholder-bottle.png"
+                        : `/assets/${item.category?.id}/${item.name}.png`
                     }
                     alt={item.name}
                     fill
                     sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-contain group-hover:scale-110 transition-transform duration-500"
+                    className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out drop-shadow-lg"
                   />
                 </Link>
 
-                {/* Información */}
-                <div className="p-4 flex flex-col flex-1 justify-between">
+                <div className="p-5 flex flex-col flex-1 justify-between bg-zinc-900 relative z-10">
                   <div>
-                    <h3 className="text-white text-sm md:text-base font-medium line-clamp-2 leading-tight mb-2 min-h-[2.5em]">
-                      <Link href={`/producto/${item.slug}`} className="hover:text-orange-500 transition-colors">
+                    <h3 className="text-white text-sm font-bold line-clamp-2 leading-snug mb-3 min-h-[2.5em] group-hover:text-orange-400 transition-colors">
                         {item.name}
-                      </Link>
                     </h3>
                     
-                    <div className="flex flex-col">
-                      <span className="text-xs text-zinc-500 line-through">
-                        S/ {Number(item.price).toFixed(2)}
-                      </span>
-                      <span className="text-lg md:text-xl font-bold text-orange-500">
+                    <div className="flex items-end gap-2">
+                      <span className="text-xl md:text-2xl font-black text-white">
                         S/ {Number(item.offer_price).toFixed(2)}
+                      </span>
+                      <span className="text-xs text-zinc-500 line-through mb-1">
+                        S/ {Number(item.price).toFixed(2)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Botón Añadir (UX Mejorado Mobile) */}
                   <button
                     onClick={() => addToCart(item)}
-                    className="mt-3 w-full bg-zinc-800 hover:bg-orange-600 text-white py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all active:scale-95 group-hover:bg-orange-600"
+                    className="mt-4 w-full bg-zinc-800 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:shadow-lg shadow-orange-500/20 group/btn"
                   >
-                    <ShoppingCart size={16} />
+                    <ShoppingCart size={18} className="group-hover/btn:animate-bounce" />
                     <span className="md:hidden lg:inline">Agregar</span>
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))
           ) : (
-            <div className="col-span-full py-16 text-center">
+            <div className="col-span-full py-16 text-center bg-zinc-900/50 rounded-3xl border border-zinc-800 border-dashed">
               <p className="text-zinc-500 text-lg">No hay ofertas activas en este momento.</p>
             </div>
           )}
-        </div>
+        </motion.div>
       </section>
 
       {/* --- TRUST SIGNALS --- */}
-      <section className="bg-zinc-900 py-12 border-y border-zinc-800">
+      <section className="bg-zinc-900 py-16 border-y border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: Truck, title: "Delivery Flash", desc: "Entrega rápida en Ica" },
               { icon: ShieldCheck, title: "Garantía Total", desc: "Productos 100% originales" },
               { icon: Star, title: "Atención VIP", desc: "Soporte personalizado" }
             ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-4 p-6 rounded-2xl bg-zinc-950/50 border border-zinc-800/50 hover:border-orange-500/30 transition-colors">
-                <div className="p-3 bg-orange-500/10 rounded-xl text-orange-500">
-                   <feature.icon size={28}/>
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                whileHover={{ scale: 1.03, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
+                className="flex items-center gap-5 p-8 rounded-3xl bg-zinc-950/50 border border-zinc-800 cursor-default group"
+              >
+                <div className="p-4 bg-orange-500/10 rounded-2xl text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300">
+                   <feature.icon size={32} />
                 </div>
                 <div>
-                  <h4 className="text-white font-bold text-lg">{feature.title}</h4>
+                  <h4 className="text-white font-bold text-xl mb-1">{feature.title}</h4>
                   <p className="text-zinc-400 text-sm">{feature.desc}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
         </div>
       </section>
 
       {/* --- BANNER FINAL --- */}
-      <section className="relative w-full py-24 bg-gradient-to-br from-orange-600 to-amber-700 text-center overflow-hidden">
-         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-multiply"></div>
+      <section className="relative w-full py-32 bg-gradient-to-br from-orange-600 to-red-700 text-center overflow-hidden">
+         <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+            className="absolute top-0 left-0 w-[1000px] h-[1000px] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-multiply -translate-x-1/2 -translate-y-1/2"
+         />
+         
          <div className="relative z-10 px-6 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+            <motion.h2 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="text-4xl md:text-6xl font-black text-white mb-8 leading-tight drop-shadow-xl"
+            >
               ¿Listo para empezar la fiesta?
-            </h2>
-            <p className="text-white/90 text-lg mb-8">
-               Explora nuestros packs armados con hielo y complementos listos para disfrutar.
-            </p>
-            <Link href="/combos" className="inline-flex items-center gap-2 bg-black text-white hover:bg-zinc-900 font-bold py-4 px-10 rounded-full shadow-2xl transition-transform hover:scale-105">
-                <PartyPopper size={20} /> Ver Packs de Fiesta
-            </Link>
+            </motion.h2>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link href="/combos" className="inline-flex items-center gap-3 bg-black text-white hover:bg-zinc-900 font-bold py-5 px-12 rounded-full shadow-2xl transition-all text-lg border-4 border-white/10 hover:border-white/30">
+                    <PartyPopper size={24} className="text-orange-500" /> 
+                    <span>Ver Packs de Fiesta</span>
+                </Link>
+            </motion.div>
          </div>
       </section>
 

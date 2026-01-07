@@ -18,25 +18,30 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-
-
-  // 🔥 Evita bug de hydration en Next.js
   
-const [cart, setCart] = useState<CartItem[]>(() => {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem("cart");
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-});
+  // 1. Estado inicial vacío para evitar desajuste Server/Client
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-
-
+  // 2. Cargar carrito solo en el cliente (Mount)
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+    try {
+      const stored = localStorage.getItem("cart");
+      if (stored) {
+        setCart(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error("Error cargando carrito:", error);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // 3. Guardar en LocalStorage cada vez que el carrito cambie
+  useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem("cart", JSON.stringify(cart));
+    }
+  }, [cart, isInitialized]);
 
   const playSound = () => {
     const audio = new Audio("/sounds/cheers.mp3");
@@ -45,15 +50,26 @@ const [cart, setCart] = useState<CartItem[]>(() => {
   };
 
   const addToCart = (product: Product, quantity: number = 1) => {
-    const finalPrice =
+    // 🔥 CORRECCIÓN DEL ERROR DE TIPADO:
+    // Convertimos explícitamente a Number() por si la API devuelve strings ("150.00")
+    const rawPrice =
       product.is_offer && product.offer_price
         ? product.offer_price
         : product.price;
 
-    const pricedProduct: Product = { ...product, price: finalPrice };
+    const finalPrice = Number(rawPrice);
+
+    // Creamos una copia segura del producto con el precio numérico correcto
+    const pricedProduct: Product = { 
+        ...product, 
+        price: finalPrice,
+        // Aseguramos que offer_price también sea número si existe
+        offer_price: product.offer_price ? Number(product.offer_price) : undefined
+    };
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
+      
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id
@@ -61,6 +77,7 @@ const [cart, setCart] = useState<CartItem[]>(() => {
             : item
         );
       }
+      
       return [...prev, { product: pricedProduct, quantity }];
     });
 
@@ -93,6 +110,9 @@ const [cart, setCart] = useState<CartItem[]>(() => {
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
+    // Evitar cantidades negativas o cero
+    if (quantity < 1) return;
+    
     setCart((prev) =>
       prev.map((item) =>
         item.product.id === productId ? { ...item, quantity } : item
@@ -113,13 +133,14 @@ const [cart, setCart] = useState<CartItem[]>(() => {
         pauseOnHover={false}
         closeOnClick
         draggable={false}
+        theme="dark" // Añadido para asegurar consistencia
       />
     </CartContext.Provider>
   );
 };
 
 export const useCart = () => {
-    const context = useContext(CartContext);
-    if (!context) throw new Error("useCart must be used within CartProvider");
-    return context;
+  const context = useContext(CartContext);
+  if (!context) throw new Error("useCart must be used within CartProvider");
+  return context;
 };

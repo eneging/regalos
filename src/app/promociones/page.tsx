@@ -68,7 +68,7 @@ const PromocionesPage = () => {
           const imageSrc =
             product.image_url && product.image_url.startsWith("http")
               ? product.image_url
-              : "/placeholder.jpg";
+              : `/assets/${product.category?.id}/${product.name}.png`;
 
           return (
             <div
@@ -86,8 +86,8 @@ const PromocionesPage = () => {
                   src={imageSrc}
                   alt={product.name}
                   fill
-                  className="object-contain p-4 group-hover:scale-105 transition-transform"
-                  sizes="(max-width: 768px) 50vw, 200px"
+             className="object-cover group-hover:scale-110 transition-transform duration-500"
+    sizes="(max-width: 768px) 50vw, 200px"
                 />
               </div>
 

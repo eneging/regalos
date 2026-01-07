@@ -76,7 +76,7 @@ export default function Navbar() {
       {/* =========================================================
           🌍 TOP BAR (MULTI-TIENDA) - ICONOS
       ========================================================== */}
-      <div className="hidden md:flex justify-between items-center bg-[#000000] text-[11px] py-2 px-6 md:px-10 border-b border-white/10 relative z-[10000]">
+      <div className="hidden md:flex justify-between items-center bg-[#000000] text-[11px] py-2 px-6 md:px-10 border-b border-white/10 relative z-[8000]">
         
         {/* Izquierda: Switcher de Marcas */}
         <div className="flex items-center gap-6">
@@ -173,7 +173,7 @@ export default function Navbar() {
 
             {/* Iconos de Acción */}
             <div className="flex items-center gap-3 border-l border-white/10 pl-4">
-              <Link href="/account" className="hidden sm:block text-gray-400 hover:text-white transition">
+              <Link href="/login" className="hidden sm:block text-gray-400 hover:text-white transition">
                 <User size={22} />
               </Link>
               <Link href="/wishlist" className="hidden sm:block text-gray-400 hover:text-amber-500 transition">

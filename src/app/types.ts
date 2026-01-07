@@ -85,8 +85,8 @@ export interface Product {
   description: string;
   price: number;
   image_url: string;
-  is_offer: boolean;
-  offer_price?: number;
+  is_offer?: number | boolean | string; // Aceptamos 1, "1" o true
+  offer_price?: number | string;
   category: Category;  
                // objeto Category completo
   available: boolean;
@@ -149,5 +149,6 @@ export interface CartProduct {
   available: boolean;
   created_at: string;
   updated_at: string;
+ 
    product_category_id: number;
 }

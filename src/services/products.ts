@@ -21,3 +21,17 @@ export async function getProduct(slug: string): Promise<Product> {
 
   return res.json();
 }
+
+
+export async function getOffers(): Promise<Product[]> {
+  const res = await fetch(`${API}/products/offers`, {
+    cache: "no-store", // O "force-cache" si quieres caché en Next.js
+  });
+
+  if (!res.ok) throw new Error("Error cargando ofertas");
+
+  const json = await res.json();
+  
+  // Tu API devuelve { success: true, data: [...] }
+  return json.data || [];
+}

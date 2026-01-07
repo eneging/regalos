@@ -159,7 +159,15 @@ export default function SearchBar() {
                         className="object-contain"
                       />
                     ) : (
-                      <Search className="w-4 h-4 text-zinc-400" />
+                     
+ <Image
+                        src= {`/assets/${product.category?.id}/${product.name}.png`}
+                        alt={product.name}
+                        width={40}
+                        height={40}
+                        className="object-contain"
+
+            ></Image>        
                     )}
                   </div>
 
