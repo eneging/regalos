@@ -1,37 +1,71 @@
 import { Product } from "../services/types/product";
 
+/* ================================
+   API CONFIG
+================================ */
+
 const API = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API) {
+  throw new Error("❌ NEXT_PUBLIC_API_URL no está definida");
+}
+
+/* ================================
+   GET ALL PRODUCTS
+================================ */
 
 export async function getProducts(): Promise<Product[]> {
   const res = await fetch(`${API}/products`, {
     cache: "no-store",
   });
 
-  if (!res.ok) throw new Error("Error cargando productos");
+  if (!res.ok) {
+    console.error("Error cargando productos:", res.status);
+    return [];
+  }
 
-  return res.json();
+  const json = await res.json();
+
+  // API: { success, data, meta }
+  return json?.data ?? [];
 }
 
-export async function getProduct(slug: string): Promise<Product> {
+/* ================================
+   GET SINGLE PRODUCT
+================================ */
+
+export async function getProduct(slug: string): Promise<Product | null> {
+  if (!slug) return null;
+
   const res = await fetch(`${API}/products/${slug}`, {
     cache: "no-store",
   });
 
-  if (!res.ok) throw new Error("Producto no encontrado");
-
-  return res.json();
-}
-
-
-export async function getOffers(): Promise<Product[]> {
-  const res = await fetch(`${API}/products/offers`, {
-    cache: "no-store", // O "force-cache" si quieres caché en Next.js
-  });
-
-  if (!res.ok) throw new Error("Error cargando ofertas");
+  if (!res.ok) {
+    console.error("Producto no encontrado:", slug);
+    return null;
+  }
 
   const json = await res.json();
-  
-  // Tu API devuelve { success: true, data: [...] }
-  return json.data || [];
+
+  // API: { success, data }
+  return json?.data ?? null;
+}
+
+/* ================================
+   GET OFFERS
+================================ */
+
+export async function getOffers(): Promise<Product[]> {
+  const res = await fetch(`${API}/products?offer=true`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    console.error("Error cargando ofertas:", res.status);
+    return [];
+  }
+
+  const json = await res.json();
+  return json?.data ?? [];
 }
