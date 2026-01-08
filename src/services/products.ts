@@ -1,4 +1,5 @@
 import { Product } from "../services/types/product";
+import { ApiResponse } from "./types/api";
 
 /* ================================
    API CONFIG (SAFE)
@@ -10,27 +11,25 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "";
    GET ALL PRODUCTS
 ================================ */
 
-export async function getProducts(): Promise<Product[]> {
-  if (!API) {
-    console.error("NEXT_PUBLIC_API_URL no definida");
-    return [];
-  }
-
+export async function getProducts(): Promise<ApiResponse<Product[]>> {
   try {
     const res = await fetch(`${API}/products`, {
       cache: "no-store",
     });
 
     if (!res.ok) {
-      console.error("Error cargando productos:", res.status);
-      return [];
+      throw new Error(`Error ${res.status}`);
     }
 
-    const json = await res.json();
-    return json?.data ?? [];
+    return res.json();
   } catch (error) {
-    console.error("getProducts fetch error:", error);
-    return [];
+    console.error("❌ getProducts error:", error);
+    return {
+      success: false,
+      message: "Error de conexión",
+      data: [],
+      errors: error,
+    };
   }
 }
 

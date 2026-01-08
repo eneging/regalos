@@ -6,7 +6,7 @@ import {
   AnimatePresence, 
   useScroll, 
   useTransform, 
-  type Variants // 👈 Importante: Importamos el tipo para evitar el error
+  type Variants 
 } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,11 +21,11 @@ import OfferProducts from "../store/OfferProducts";
 import { useCart } from "@/app/context/CartContext"; 
 import { useStoreData } from "@/app/hooks/useStoreData";
 import { Category } from "@/services/categories.service";
-import { Product } from "@/app/types"; // Asegúrate de que esta ruta sea correcta según tu proyecto
+import { Product } from "@/app/types"; 
 import SearchBar from "../SearchBar";
 
 // =====================================================================
-// 🎨 VARIANTES DE ANIMACIÓN (Tipadas correctamente)
+// 🎨 VARIANTES DE ANIMACIÓN
 // =====================================================================
 
 const containerVariants: Variants = {
@@ -44,7 +44,6 @@ const itemVariants: Variants = {
   visible: { 
     opacity: 1, 
     y: 0, 
-    // 👇 "as const" asegura a TS que "spring" es el valor exacto
     transition: { type: "spring" as const, stiffness: 50, damping: 20 } 
   },
 };
@@ -96,24 +95,30 @@ const ALLOWED_CATEGORIES = [
 // 🚀 COMPONENTE PRINCIPAL
 // =====================================================================
 
-export default function HomeView({ categories = [] }: HomeViewProps) {
+export default function HomeView({ categories: initialCategories = [] }: HomeViewProps) {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const { addToCart } = useCart();
-  const { products, loading } = useStoreData();
   const { scrollY } = useScroll();
 
-  // Parallax suave para el fondo
+  // 1. Hook de Datos (Cliente)
+  const { products, categories: clientCategories, loading } = useStoreData();
+
+  // 2. Lógica de Fusión de Datos:
+  // Priorizamos los datos del cliente (cache/api), si no, usamos props iniciales.
+  const activeCategories = clientCategories.length > 0 ? clientCategories : initialCategories;
+
+  // 3. Parallax suave para el fondo
   const yBackground = useTransform(scrollY, [0, 1000], [0, 200]);
 
   // --- Lógica Modal ---
   useEffect(() => {
-    // Verificamos window para asegurar que corre en cliente
     if (typeof window !== "undefined") {
         const closedAt = localStorage.getItem("offerModalClosedAt");
         const now = Date.now();
-        const expiration = 10 * 60 * 1000; 
+        const expiration = 10 * 60 * 1000; // 10 minutos
       
-        if (!loading && (!closedAt || now - parseInt(closedAt) > expiration)) {
+        // Solo mostramos si hay productos cargados y pasó el tiempo de expiración
+        if (!loading && products.length > 0 && (!closedAt || now - parseInt(closedAt) > expiration)) {
           const timer = setTimeout(() => setShowOfferModal(true), 3000);
           return () => clearTimeout(timer);
         }
@@ -125,14 +130,19 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
     setShowOfferModal(false);
   };
 
-  const filteredCategories = (categories || []).filter(cat => 
+  // Filtrado de categorías
+  const filteredCategories = (activeCategories || []).filter(cat => 
     ALLOWED_CATEGORIES.includes(cat.slug)
   );
 
+  // Filtrado de ofertas
   const offers = (products || [])
     .filter((p) => Number(p.is_offer) === 1 && p.offer_price)
     .map((p) => {
-      const discount = Math.round(((Number(p.price) - Number(p.offer_price)) / Number(p.price)) * 100) || 0;
+      const price = Number(p.price);
+      const offerPrice = Number(p.offer_price);
+      // Evitamos división por cero
+      const discount = price > 0 ? Math.round(((price - offerPrice) / price) * 100) : 0;
       return { ...p, discount };
     })
     .sort((a, b) => b.discount - a.discount)
@@ -141,7 +151,7 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
   return (
     <main className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-orange-500 selection:text-white overflow-x-hidden">
       
-      {/* --- MODAL (Con efecto Bounce) --- */}
+      {/* --- MODAL (Ofertas) --- */}
       <AnimatePresence>
         {showOfferModal && (
           <motion.div 
@@ -164,7 +174,7 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
                 <FiX size={20} />
               </button>
               <div className="p-1">
-                <OfferProducts />
+                <OfferProducts products={offers} /> 
               </div>
             </motion.div>
           </motion.div>
@@ -174,7 +184,7 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
       {/* --- HERO SECTION --- */}
       <section className="relative w-full min-h-[90vh] flex items-center justify-center bg-zinc-950 overflow-hidden pt-20">
         
-        {/* Fondo con Parallax sutil */}
+        {/* Fondo con Parallax */}
         <motion.div style={{ y: yBackground }} className="absolute inset-0 pointer-events-none">
              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px]" />
              <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[120px]" />
@@ -227,23 +237,23 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative hidden lg:flex justify-center items-center order-1 lg:order-2 perspective-1000"
           >
-             <div className="absolute w-[400px] h-[400px] bg-gradient-to-tr from-orange-500/30 to-amber-600/30 rounded-full blur-[80px] animate-pulse" />
-             
-             <motion.div variants={floatingAnimation} animate="animate" className="relative z-10 w-full h-auto flex justify-center">
-               <Image
-                 src="https://res.cloudinary.com/dck9uinqa/image/upload/v1760996469/depositphotos_110689618-stock-photo-bottles-of-several-whiskey-brands_kbuky1.jpg"
-                 alt="Botellas Premium"
-                 width={700}
-                 height={800}
-                 priority
-                 className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
-               />
-             </motion.div>
+              <div className="absolute w-[400px] h-[400px] bg-gradient-to-tr from-orange-500/30 to-amber-600/30 rounded-full blur-[80px] animate-pulse" />
+              
+              <motion.div variants={floatingAnimation} animate="animate" className="relative z-10 w-full h-auto flex justify-center">
+                <Image
+                  src="https://res.cloudinary.com/dck9uinqa/image/upload/v1760996469/depositphotos_110689618-stock-photo-bottles-of-several-whiskey-brands_kbuky1.jpg"
+                  alt="Botellas Premium"
+                  width={700}
+                  height={800}
+                  priority
+                  className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+                />
+              </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* --- CATEGORÍAS --- */}
+      {/* --- CATEGORÍAS (Barra de scroll personalizada) --- */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -251,13 +261,21 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
         className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-lg shadow-black/50"
       >
         <div className="max-w-7xl mx-auto px-4 relative">
-            <div className="overflow-x-auto pb-2 hide-scrollbar scroll-smooth">
+            <div className="overflow-x-auto pb-4 scroll-smooth touch-pan-x 
+                /* Custom Scrollbar Styles */
+                [&::-webkit-scrollbar]:h-1.5
+                [&::-webkit-scrollbar-track]:bg-zinc-800/30
+                [&::-webkit-scrollbar-track]:rounded-full
+                [&::-webkit-scrollbar-thumb]:bg-zinc-600
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                [&::-webkit-scrollbar-thumb]:hover:bg-orange-500
+                [&::-webkit-scrollbar-thumb]:transition-colors
+            ">
                 <motion.div 
                   variants={containerVariants}
                   initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  className="flex gap-3 md:justify-center min-w-max px-2"
+                  animate="visible"
+                  className="flex gap-3 justify-start min-w-max px-2"
                 >
                   {filteredCategories.length > 0 ? (
                     filteredCategories.map((cat) => (
@@ -276,9 +294,9 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
                         </motion.div>
                     ))
                   ) : (
-                    <div className="flex gap-2 w-full justify-center">
-                        {[1,2,3,4].map(i => (
-                          <div key={i} className="w-32 h-12 bg-zinc-900 rounded-xl animate-pulse border border-zinc-800" />
+                    <div className="flex gap-2 w-full justify-start">
+                        {[1,2,3,4,5].map(i => (
+                          <div key={i} className="w-32 h-12 bg-zinc-900/80 rounded-xl animate-pulse border border-zinc-800/50" />
                         ))}
                     </div>
                   )}
@@ -315,7 +333,7 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
           viewport={{ once: true, amount: 0.1 }}
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
         >
-          {loading ? (
+          {loading && offers.length === 0 ? (
              Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="bg-zinc-900 rounded-3xl h-80 animate-pulse border border-zinc-800" />
              ))
@@ -411,9 +429,9 @@ export default function HomeView({ categories = [] }: HomeViewProps) {
       {/* --- BANNER FINAL --- */}
       <section className="relative w-full py-32 bg-gradient-to-br from-orange-600 to-red-700 text-center overflow-hidden">
          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-            className="absolute top-0 left-0 w-[1000px] h-[1000px] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-multiply -translate-x-1/2 -translate-y-1/2"
+           animate={{ rotate: 360 }}
+           transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+           className="absolute top-0 left-0 w-[1000px] h-[1000px] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-multiply -translate-x-1/2 -translate-y-1/2"
          />
          
          <div className="relative z-10 px-6 max-w-3xl mx-auto">

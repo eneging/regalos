@@ -1,21 +1,23 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { getProducts } from "@/services/products";
-import { getCategories } from "@/services/categories.service";
+import { getCategories, Category } from "@/services/categories.service";
 import type { Product } from "@/app/types";
-import { Category } from "@/services/categories.service"; 
 
-/* ----- Constantes de Caché ----- */
-const CACHE_KEY_PRODUCTS   = "store_products_v3"; 
+/* ----- Cache ----- */
+const CACHE_KEY_PRODUCTS   = "store_products_v3";
 const CACHE_KEY_CATEGORIES = "store_categories_v3";
 const CACHE_KEY_TIMESTAMP  = "store_timestamp_v3";
 
-const CACHE_TTL = process.env.NODE_ENV === 'development' ? 0 : 30 * 60 * 1000;
+const CACHE_TTL =
+  process.env.NODE_ENV === "development" ? 0 : 30 * 60 * 1000;
 
 export function useStoreData() {
-  const [products, setProducts]     = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const clearCache = () => {
     localStorage.removeItem(CACHE_KEY_PRODUCTS);
@@ -24,83 +26,89 @@ export function useStoreData() {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
     async function fetchData() {
       setLoading(true);
       setError(null);
 
       const now = Date.now();
-      const cachedStampStr = localStorage.getItem(CACHE_KEY_TIMESTAMP);
-      const cacheIsFresh = cachedStampStr && (now - parseInt(cachedStampStr, 10) < CACHE_TTL);
+      const cachedStamp = localStorage.getItem(CACHE_KEY_TIMESTAMP);
+      const isFresh =
+        cachedStamp && now - Number(cachedStamp) < CACHE_TTL;
 
-      // 1. INTENTO DE LEER CACHÉ
-      if (cacheIsFresh && CACHE_TTL > 0) {
+      /* 1️⃣ CACHE */
+      if (isFresh && CACHE_TTL > 0) {
         try {
-          const cachedProds = JSON.parse(localStorage.getItem(CACHE_KEY_PRODUCTS) || "null");
-          const cachedCats  = JSON.parse(localStorage.getItem(CACHE_KEY_CATEGORIES) || "null");
+          const cachedProducts = JSON.parse(
+            localStorage.getItem(CACHE_KEY_PRODUCTS) || "null"
+          );
+          const cachedCategories = JSON.parse(
+            localStorage.getItem(CACHE_KEY_CATEGORIES) || "null"
+          );
 
-          if (Array.isArray(cachedProds) && Array.isArray(cachedCats)) {
-            if (isMounted) {
-              console.log("⚡️ [useStoreData] Usando caché local");
-              setProducts(cachedProds);
-              setCategories(cachedCats);
+          if (
+            Array.isArray(cachedProducts) &&
+            Array.isArray(cachedCategories)
+          ) {
+            console.log("⚡ Cache usada");
+            if (mounted) {
+              setProducts(cachedProducts);
+              setCategories(cachedCategories);
               setLoading(false);
             }
             return;
           }
         } catch (e) {
-          // CORRECCIÓN: Usamos 'e' para loguear el error real
-          console.warn("⚠️ Caché corrupta, limpiando...", e);
+          console.warn("⚠️ Cache corrupta, limpiando", e);
           clearCache();
         }
       }
 
-      // 2. FETCH A LA API
+      /* 2️⃣ API */
       try {
-        console.log("🌍 [useStoreData] Consultando API...");
+        console.log("🌍 Consultando API...");
         const [productsRes, categoriesRes] = await Promise.all([
           getProducts(),
           getCategories(),
         ]);
 
-        const rawProducts = Array.isArray(productsRes) 
-            ? productsRes 
-            : (productsRes as any).data || [];
+        if (!productsRes.success || !categoriesRes.success) {
+          throw new Error("Respuesta inválida de la API");
+        }
 
-        const rawCategories = Array.isArray(categoriesRes) 
-            ? categoriesRes 
-            : (categoriesRes as any).data || [];
+        const rawProducts = productsRes.data;
+        const rawCategories = categoriesRes.data;
 
-        if (!Array.isArray(rawProducts)) throw new Error("Formato de productos inválido");
-        if (!Array.isArray(rawCategories)) throw new Error("Formato de categorías inválido");
+        const mappedProducts: Product[] = rawProducts.map((p:any) => ({
+          ...p,
+          category:
+            rawCategories.find(
+              (c:any) => c.id === p.product_category_id
+            ) || p.category,
+        }));
 
-        const prods: Product[] = rawProducts.map((p: any) => {
-          const category = rawCategories.find((c: Category) => c.id === p.product_category_id) 
-                           || p.category;
-          return { ...p, category };
-        });
-
-        if (isMounted) {
-          setProducts(prods);
+        if (mounted) {
+          setProducts(mappedProducts);
           setCategories(rawCategories);
           setLoading(false);
 
-          if (prods.length > 0) {
-            try {
-              localStorage.setItem(CACHE_KEY_PRODUCTS,   JSON.stringify(prods));
-              localStorage.setItem(CACHE_KEY_CATEGORIES, JSON.stringify(rawCategories));
-              localStorage.setItem(CACHE_KEY_TIMESTAMP,  now.toString());
-            } catch (e) {
-               // CORRECCIÓN: Usamos 'e' aquí también
-               console.error("Error guardando caché (QuotaExceeded?)", e);
-            }
-          }
+          localStorage.setItem(
+            CACHE_KEY_PRODUCTS,
+            JSON.stringify(mappedProducts)
+          );
+          localStorage.setItem(
+            CACHE_KEY_CATEGORIES,
+            JSON.stringify(rawCategories)
+          );
+          localStorage.setItem(
+            CACHE_KEY_TIMESTAMP,
+            now.toString()
+          );
         }
-
       } catch (err: any) {
-        console.error("❌ Error useStoreData:", err);
-        if (isMounted) {
+        console.error("❌ useStoreData error:", err);
+        if (mounted) {
           setError(err.message || "Error de conexión");
           setLoading(false);
         }
@@ -108,8 +116,9 @@ export function useStoreData() {
     }
 
     fetchData();
-
-    return () => { isMounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return { products, categories, loading, error, refresh: clearCache };

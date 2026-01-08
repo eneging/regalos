@@ -2,6 +2,8 @@
    API CONFIG (SAFE PARA SSR)
 ================================ */
 
+import { ApiResponse } from "./types/api";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /* ================================
@@ -22,41 +24,28 @@ export interface Category {
    GET CATEGORIES
 ================================ */
 
-export async function getCategories(): Promise<Category[]> {
-  if (!API_URL) {
-    console.error("❌ NEXT_PUBLIC_API_URL no está definida");
-    return [];
-  }
-
+export async function getCategories(): Promise<ApiResponse<Category[]>> {
   try {
     const res = await fetch(`${API_URL}/categories`, {
       cache: "no-store",
     });
 
     if (!res.ok) {
-      console.error(`❌ Error API categories: ${res.status}`);
-      return [];
+      throw new Error(`Error ${res.status} al cargar categorías`);
     }
 
-    const json = await res.json();
-
-    if (!json?.success) {
-      console.warn("⚠️ API respondió success=false");
-      return [];
-    }
-
-    if (!Array.isArray(json.data)) {
-      console.error("❌ data no es un array");
-      return [];
-    }
-
-    console.log("✅ Categories cargadas:", json.data.length);
-    return json.data;
+    return res.json();
   } catch (error) {
-    console.error("🔥 GET CATEGORIES ERROR:", error);
-    return [];
+    console.error("❌ getCategories error:", error);
+    return {
+      success: false,
+      message: "Error de conexión",
+      data: [],
+      errors: error,
+    };
   }
 }
+
 
 /* ================================
    PRODUCTS BY CATEGORY

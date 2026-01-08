@@ -1,4 +1,5 @@
 import { Product } from "@/app/types";
+import { ApiResponse } from "./types/api";
 
 /* ================================
    API CONFIG (SAFE PARA SSR)
@@ -9,6 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 /* ================================
    TYPES
 ================================ */
+
 
 export interface SearchResponse {
   success: boolean;
@@ -23,6 +25,28 @@ export interface SearchResponse {
 /* ================================
    SEARCH (PAGE /buscar/[slug])
 ================================ */
+export async function getProducts(): Promise<ApiResponse<Product[]>> {
+  try {
+    const res = await fetch(`${API_URL}/products`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Error ${res.status} al cargar productos`);
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error("❌ getProducts error:", error);
+    return {
+      success: false,
+      message: "Error de conexión",
+      data: [],
+      errors: error,
+    };
+  }
+}
+
 
 export async function searchProducts(
   query: string,
