@@ -74,9 +74,9 @@ export default function SearchResultsPage() {
             className="border rounded-xl p-4 hover:shadow-md transition"
           >
             <div className="aspect-square bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-              {product.image_url ? (
+              {product.name ? (
                 <Image
-                  src={product.image_url}
+                  src={`/assets/${product.category?.id}/${product.name}.png`}
                   alt={product.name}
                   width={300}
                   height={300}

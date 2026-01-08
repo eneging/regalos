@@ -1,6 +1,5 @@
 import { getProductsByCategory } from "../../../services/categories.service";
-import Link from "next/link";
-import ProductCard from "@/app/components/ProductCard"; // <--- Importamos la card reutilizable
+import CategoryView from "../../components/home/CategoryView"; // <--- Importamos el componente cliente
 
 export default async function CategoryPage({
   params,
@@ -8,42 +7,15 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  
+  // Fetch inicial en el servidor (Vital para SEO)
   const data = await getProductsByCategory(slug);
-  const categoryTitle = slug.replace(/-/g, " ");
+  
+  // Validamos que 'data.products' sea un array, si falla la API enviamos vacío
+  const serverProducts = data && Array.isArray(data.products) ? data.products : [];
 
   return (
-    <main className="bg-[#050505] min-h-screen text-white px-6 py-16">
-      <div className="max-w-7xl mx-auto mb-10">
-        <h1 className="text-4xl font-extrabold capitalize">
-          {categoryTitle}
-        </h1>
-        <p className="text-gray-400 mt-2">
-          Productos disponibles en esta categoría
-        </p>
-      </div>
-
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
-        {data.products.length > 0 ? (
-          data.products.map((product: any) => (
-            // REUTILIZACIÓN DE LA CARD
-            <ProductCard 
-                key={product.id}
-                product={product}
-                categoryName={categoryTitle}
-            />
-          ))
-        ) : (
-          <div className="col-span-full text-center text-gray-400 py-10">
-            No hay productos en esta categoría
-          </div>
-        )}
-      </div>
-
-      <div className="text-center mt-14">
-        <Link href="/" className="text-amber-500 hover:text-amber-400 font-bold">
-          ← Volver al inicio
-        </Link>
-      </div>
-    </main>
+    // Pasamos los datos iniciales y el slug al componente cliente
+    <CategoryView initialProducts={serverProducts} slug={slug} />
   );
 }
