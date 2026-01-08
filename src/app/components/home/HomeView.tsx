@@ -80,7 +80,7 @@ const CategoryIcon = ({ slug }: { slug: string }) => {
 };
 
 interface HomeViewProps {
-  categories: Category[];
+  categories?: Category[];
   products?: Product[];
 }
 
