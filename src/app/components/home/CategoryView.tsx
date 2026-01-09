@@ -40,6 +40,7 @@ export default function CategoryView({ initialProducts, slug }: CategoryViewProp
         </h1>
         <p className="text-gray-400 mt-2">
           Productos disponibles en esta categoría
+
         </p>
       </div>
 

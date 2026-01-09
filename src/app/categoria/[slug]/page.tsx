@@ -10,10 +10,13 @@ export default async function CategoryPage({
   
   // Fetch inicial en el servidor (Vital para SEO)
   const data = await getProductsByCategory(slug);
+
   
   // Validamos que 'data.products' sea un array, si falla la API enviamos vacío
   const serverProducts = data && Array.isArray(data.products) ? data.products : [];
 
+
+  
   return (
     // Pasamos los datos iniciales y el slug al componente cliente
     <CategoryView initialProducts={serverProducts} slug={slug} />

@@ -163,7 +163,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4 flex-1 justify-end">
             
             {/* Search Bar */}
-           <div className="lg:block hidden">
+           <div className="lg:block hidden ">
 
       <SearchBar></SearchBar>
 
@@ -201,6 +201,8 @@ export default function Navbar() {
             </div>
           </div>
         </div>
+
+        <div className="lg:hidden  p-4"><SearchBar ></SearchBar></div>
 
         {/* =========================================================
             📱 MOBILE MENU (Slide-over)
