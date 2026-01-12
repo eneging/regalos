@@ -223,7 +223,7 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
           modal: true,
           paymentMethods: {
             tarjeta: true,
-            yape: true,
+            yape: false,
             billetera: true,
             bancaMovil: true,
             agente: true,
