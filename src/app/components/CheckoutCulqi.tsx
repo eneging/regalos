@@ -4,13 +4,92 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useCart } from "@/app/context/CartContext";
-//import { useAuth } from "@/app/context/AuthContext";
 import AuthModal from "@/app/components/AuthModal";
-import { getToken } from "@/services/authService"; // 👈 IMPORTANTE: Usamos el getter directo de cookies
+import { useAuth } from "@/app/context/AuthContext";
 
 /* =========================================
-   ⚙️ 1. CONFIGURACIÓN
+   ⚙️ 0. CONSTANTES Y UTILIDADES
    ========================================= */
+
+// 🛡️ Fallback seguro para la URL del Backend
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+// 🎨 TUS ESTILOS PERSONALIZADOS (Copiados de tu ejemplo)
+const CULQI_APPEARANCE = {
+  theme: "default",
+  hiddenCulqiLogo: false,
+  hiddenBannerContent: false,
+  hiddenBanner: false,
+  hiddenToolBarAmount: false,
+  menuType: "sidebar", // default / sidebar / sliderTop / select
+  buttonCardPayText: "Pagar S/", // Texto personalizado
+  // logo: 'https://tu-url-de-logo.com/logo.png', // Descomenta y pon tu logo si quieres
+  defaultStyle: {
+    bannerColor: "#0A2540", // Ejemplo: Azul oscuro
+    buttonBackground: "#EFC078", // Ejemplo: Dorado
+    menuColor: "#0A2540",
+    linksColor: "#EFC078",
+    buttonTextColor: "#1A1B25",
+    priceColor: "#EFC078",
+  },
+  variables: {
+    fontFamily: "sans-serif", // Puedes cambiar a 'monospace' si prefieres
+    fontWeightNormal: "500",
+    borderRadius: "8px",
+    colorBackground: "#0A2540",
+    colorPrimary: "#EFC078",
+    colorPrimaryText: "#1A1B25",
+    colorText: "white",
+    colorTextSecondary: "#cbd5e1",
+    colorTextPlaceholder: "#727F96",
+    colorIconTab: "white",
+    colorLogo: "light",
+  },
+  rules: {
+    ".Culqi-Label": {
+        color: "white",
+    },
+    ".Culqi-Input": {
+        border: "1px solid #EFC078",
+        color: "white",
+    },
+    ".Culqi-Input:focus": {
+        border: "2px solid #EFC078",
+    },
+    ".Culqi-Button": {
+        background: "#EFC078",
+        color: "#1A1B25",
+        fontWeight: "bold"
+    },
+    // Puedes agregar más reglas CSS aquí según tu ejemplo original
+  },
+};
+
+const CULQI_CUSTOM_FIELDS = {
+  customInput: [
+    {
+      label: "DNI",
+      typeValidate: "DNI",
+      placeholder: "Ingrese su DNI",
+      id: "dni", 
+      minLength: 8,
+      maxLength: 8,
+      doubleSpan: true,
+    },
+  ],
+  card: [
+    {
+      label: "DNI Titular",
+      typeValidate: "DNI",
+      placeholder: "DNI del titular",
+      id: "dni_titular",
+      minLength: 8,
+      maxLength: 8,
+      doubleSpan: true,
+    },
+  ],
+};
+
 const CULQI_CONFIG = {
   PUBLIC_KEY: process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY!,
   TITLE: process.env.NEXT_PUBLIC_CULQI_TITLE || "Puerto Rico Restobar",
@@ -18,7 +97,7 @@ const CULQI_CONFIG = {
 };
 
 /* =========================================
-   📚 2. TIPOS
+   📚 1. TIPOS
    ========================================= */
 declare global {
   interface Window {
@@ -29,7 +108,8 @@ declare global {
 interface CulqiToken {
   id: string;
   email: string;
-  iin?: { bin: string }; 
+  iin?: { bin: string };
+  metadata?: any;
 }
 
 interface CulqiInstance {
@@ -60,12 +140,14 @@ interface CulqiConfig {
       agente: boolean;
       cuotealo: boolean;
     };
+    paymentMethodsSort?: string[]; // 👈 Agregado para ordenar
+    customFields?: typeof CULQI_CUSTOM_FIELDS;
   };
-  appearance?: any;
+  appearance?: typeof CULQI_APPEARANCE; // 👈 Agregado para estilos
 }
 
 /* =========================================
-   🪝 3. HOOK SDK
+   🪝 2. HOOK SDK
    ========================================= */
 const useCulqiSDK = () => {
   const [isReady, setIsReady] = useState(false);
@@ -104,7 +186,7 @@ const useCulqiSDK = () => {
 };
 
 /* =========================================
-   💻 4. COMPONENTE PRINCIPAL
+   💻 3. COMPONENTE PRINCIPAL
    ========================================= */
 interface CheckoutCulqiProps {
   total: number;
@@ -120,9 +202,7 @@ interface CheckoutCulqiProps {
 export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
   const router = useRouter();
   const { cart, clearCart } = useCart();
-  
-  // Usamos useAuth para el estado general, pero getToken() para el valor más fresco
- // const { isAuthenticated, user } = useAuth(); 
+  const { token, isAuthenticated } = useAuth();
   
   const isCulqiReady = useCulqiSDK();
   const [showAuth, setShowAuth] = useState(false);
@@ -130,55 +210,40 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
 
   const culqiRef = useRef<CulqiInstance | null>(null);
 
-  // Función auxiliar para obtener el token válido
-  const getValidToken = () => {
-    const token = getToken(); // Leemos directamente de la cookie
-    if (!token) {
+  const getValidToken = useCallback(() => {
+    if (!isAuthenticated || !token) {
       toast.info("Tu sesión expiró. Por favor inicia sesión nuevamente.");
       setShowAuth(true);
       return null;
     }
     return token;
-  };
+  }, [isAuthenticated, token]);
 
   const handlePay = useCallback(async () => {
-    // 1. Validar Token FRESCO antes de empezar
     const activeToken = getValidToken();
-    if (!activeToken) return; // Si no hay token, el modal ya se abrió en getValidToken
+    if (!activeToken) return;
 
-    // 2. Validaciones de Datos
-    if (!userData.first_name || !userData.last_name) {
-      toast.warning("Por favor completa tu nombre y apellido.");
-      return;
-    }
-    if (!userData.address || userData.address.length < 5) {
-      toast.warning("Ingresa una dirección válida para el envío.");
-      return;
-    }
-    if (!userData.phone || userData.phone.length < 9) {
-      toast.warning("Ingresa un número de celular válido.");
+    if (!userData.first_name || !userData.last_name || !userData.address || userData.phone.length < 9) {
+      toast.warning("Por favor completa todos tus datos correctamente.");
       return;
     }
 
     if (!isCulqiReady || !window.CulqiCheckout) {
-      toast.error("El sistema de pagos está cargando, intenta en unos segundos.");
+      toast.error("Cargando sistema de pagos... intente nuevamente.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // ------------------------------------------
-      // PASO 1: CREAR ORDEN EN BACKEND
-      // ------------------------------------------
+      // 1. CREAR ORDEN
       const resOrder = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/orders`,
+        `${API_BASE}/orders`, 
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${activeToken}`, // Usamos el token fresco
+            Authorization: `Bearer ${activeToken}`,
           },
           body: JSON.stringify({
             items: cart.map((item) => ({
@@ -192,10 +257,8 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
         }
       );
 
-      // Manejo específico de 401 (Token vencido)
       if (resOrder.status === 401) {
         setLoading(false);
-        toast.warning("Tu sesión ha expirado.");
         setShowAuth(true);
         return;
       }
@@ -207,9 +270,16 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
 
       const dynamicOrderId = dataOrder.data.order_id;
 
-      // ------------------------------------------
-      // PASO 2: ABRIR PASARELA CULQI
-      // ------------------------------------------
+      // 2. CONFIGURAR CULQI
+      const paymentMethodsConfig = {
+        tarjeta: true,
+        yape: true,
+        billetera: true,
+        bancaMovil: true,
+        agente: true,
+        cuotealo: true,
+      };
+
       const config: CulqiConfig = {
         settings: {
           title: CULQI_CONFIG.TITLE,
@@ -221,15 +291,11 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
           lang: "auto",
           installments: true,
           modal: true,
-          paymentMethods: {
-            tarjeta: true,
-            yape: false,
-            billetera: true,
-            bancaMovil: true,
-            agente: true,
-            cuotealo: true,
-          },
+          paymentMethods: paymentMethodsConfig,
+          paymentMethodsSort: Object.keys(paymentMethodsConfig), // Ordenar según config
+          customFields: CULQI_CUSTOM_FIELDS,
         },
+        appearance: CULQI_APPEARANCE, // 👈 AQUÍ INYECTAMOS TUS ESTILOS
       };
 
       const culqi = new window.CulqiCheckout(
@@ -238,34 +304,30 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
       );
       culqiRef.current = culqi;
 
-      // DEFINIR CALLBACK DE CULQI
+      // 3. CALLBACK
       culqi.culqi = async () => {
         if (culqi.token) {
+          setLoading(true); // Reiniciamos loading al procesar pago
           const tokenObj = culqi.token;
           const isCard = !!(tokenObj.iin && tokenObj.iin.bin);
           const sourceType = isCard ? 'card' : 'yape';
-
+          const userMetadata = tokenObj.metadata || {}; 
+          
           culqi.close();
-          setLoading(true); // Mantenemos loading mientras procesamos el pago
 
           try {
-            // Re-validamos token por si acaso pasó mucho tiempo en el modal
-            const payToken = getValidToken();
+            const payToken = getValidToken(); 
             if (!payToken) {
                 setLoading(false);
                 return;
             }
 
-            // ------------------------------------------
-            // PASO 3: PROCESAR PAGO EN BACKEND
-            // ------------------------------------------
             const resPay = await fetch(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL}/payments/culqi`,
+              `${API_BASE}/payments/culqi`,
               {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Accept: "application/json",
                   Authorization: `Bearer ${payToken}`,
                 },
                 body: JSON.stringify({
@@ -277,23 +339,20 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
                   last_name: userData.last_name,
                   address: userData.address,
                   phone: userData.phone,
+                  metadata: userMetadata,
                 }),
               }
             );
 
             if (resPay.status === 401) {
-              setLoading(false);
-              toast.warning("Sesión expirada durante el pago.");
-              setShowAuth(true);
+              setShowAuth(true); 
               return;
             }
 
             const dataPay = await resPay.json();
             
             if (!resPay.ok || !dataPay.success) {
-              throw new Error(
-                dataPay.errors || dataPay.message || "El pago fue rechazado."
-              );
+              throw new Error(dataPay.errors || dataPay.message || "Pago rechazado.");
             }
 
             toast.success("¡Pago Aprobado! 🎉");
@@ -305,6 +364,7 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
           } finally {
             setLoading(false);
           }
+
         } else if (culqi.error) {
           console.error(culqi.error);
           toast.error(culqi.error.user_message);
@@ -313,19 +373,13 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
       };
 
       culqi.open();
+      setLoading(false); // Apagamos loading inicial al abrir modal
 
     } catch (error: any) {
       toast.error(error.message);
       setLoading(false);
     }
-  }, [
-    cart, 
-    total, 
-    userData, 
-    clearCart, 
-    router, 
-    isCulqiReady
-  ]);
+  }, [cart, total, userData, clearCart, router, isCulqiReady, getValidToken]);
 
   return (
     <>
@@ -348,7 +402,6 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
         )}
       </button>
 
-      {/* Modal de Autenticación forzado si falla el token */}
       {showAuth && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
              <AuthModal onClose={() => setShowAuth(false)} />
