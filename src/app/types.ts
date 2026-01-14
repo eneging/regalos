@@ -82,11 +82,12 @@ export interface Product {
   name: string;
   stock:number;
 
+discount?:number;
   description: string;
   price: number;
   image_url: string;
   is_offer?: number | boolean | string; // Aceptamos 1, "1" o true
-  offer_price?: number | string;
+  offer_price?: number;
   category: Category;  
                // objeto Category completo
   available: boolean;
