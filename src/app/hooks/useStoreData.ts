@@ -6,12 +6,13 @@ import { getCategories, Category } from "@/services/categories.service";
 import type { Product } from "@/app/types";
 
 /* ----- Cache ----- */
-const CACHE_KEY_PRODUCTS   = "store_products_v3";
-const CACHE_KEY_CATEGORIES = "store_categories_v3";
-const CACHE_KEY_TIMESTAMP  = "store_timestamp_v3";
+// 🚀 CAMBIO CLAVE: Subimos a v6 para borrar la memoria vieja y traer los 1000 productos nuevos
+const CACHE_KEY_PRODUCTS   = "store_products_v6"; 
+const CACHE_KEY_CATEGORIES = "store_categories_v6";
+const CACHE_KEY_TIMESTAMP  = "store_timestamp_v6";
 
 const CACHE_TTL =
-  process.env.NODE_ENV === "development" ? 0 : 30 * 60 * 1000;
+  process.env.NODE_ENV === "development" ? 0 : 30 * 60 * 1000; // 30 Minutos en producción
 
 export function useStoreData() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -20,9 +21,13 @@ export function useStoreData() {
   const [error, setError] = useState<string | null>(null);
 
   const clearCache = () => {
-    localStorage.removeItem(CACHE_KEY_PRODUCTS);
-    localStorage.removeItem(CACHE_KEY_CATEGORIES);
-    localStorage.removeItem(CACHE_KEY_TIMESTAMP);
+    try {
+        localStorage.removeItem(CACHE_KEY_PRODUCTS);
+        localStorage.removeItem(CACHE_KEY_CATEGORIES);
+        localStorage.removeItem(CACHE_KEY_TIMESTAMP);
+    } catch (e) {
+        console.error("Error limpiando cache:", e);
+    }
   };
 
   useEffect(() => {
@@ -37,7 +42,7 @@ export function useStoreData() {
       const isFresh =
         cachedStamp && now - Number(cachedStamp) < CACHE_TTL;
 
-      /* 1️⃣ CACHE */
+      /* 1️⃣ CACHE (Si es reciente, la usamos) */
       if (isFresh && CACHE_TTL > 0) {
         try {
           const cachedProducts = JSON.parse(
@@ -49,9 +54,10 @@ export function useStoreData() {
 
           if (
             Array.isArray(cachedProducts) &&
-            Array.isArray(cachedCategories)
+            Array.isArray(cachedCategories) &&
+            cachedProducts.length > 0 // Aseguramos que no sea un array vacío cacheado por error
           ) {
-            console.log("⚡ Cache usada");
+            console.log(`⚡ Cache v6 usada (${cachedProducts.length} productos)`);
             if (mounted) {
               setProducts(cachedProducts);
               setCategories(cachedCategories);
@@ -60,31 +66,34 @@ export function useStoreData() {
             return;
           }
         } catch (e) {
-          console.warn("⚠️ Cache corrupta, limpiando", e);
+          console.warn("⚠️ Cache corrupta o versión anterior, limpiando...", e);
           clearCache();
         }
       }
 
-      /* 2️⃣ API */
+      /* 2️⃣ API (Si no hay cache o expiró) */
       try {
-        console.log("🌍 Consultando API...");
+        console.log("🌍 Consultando API (Trayendo catálogo completo)...");
+        
+        // getProducts() ahora trae 1000 items gracias al cambio en services/products.ts
         const [productsRes, categoriesRes] = await Promise.all([
           getProducts(),
           getCategories(),
         ]);
 
         if (!productsRes.success || !categoriesRes.success) {
-          throw new Error("Respuesta inválida de la API");
+          throw new Error("No se pudo obtener la respuesta del servidor");
         }
 
-        const rawProducts = productsRes.data;
-        const rawCategories = categoriesRes.data;
+        const rawProducts = productsRes.data || [];
+        const rawCategories = categoriesRes.data || [];
 
-        const mappedProducts: Product[] = rawProducts.map((p:any) => ({
+        // Mapeamos para asegurar que cada producto tenga su objeto categoría completo
+        const mappedProducts: Product[] = rawProducts.map((p: any) => ({
           ...p,
           category:
             rawCategories.find(
-              (c:any) => c.id === p.product_category_id
+              (c: any) => c.id === (p.category_id || p.product_category_id)
             ) || p.category,
         }));
 
@@ -93,18 +102,14 @@ export function useStoreData() {
           setCategories(rawCategories);
           setLoading(false);
 
-          localStorage.setItem(
-            CACHE_KEY_PRODUCTS,
-            JSON.stringify(mappedProducts)
-          );
-          localStorage.setItem(
-            CACHE_KEY_CATEGORIES,
-            JSON.stringify(rawCategories)
-          );
-          localStorage.setItem(
-            CACHE_KEY_TIMESTAMP,
-            now.toString()
-          );
+          // Guardamos en Cache v6
+          try {
+              localStorage.setItem(CACHE_KEY_PRODUCTS, JSON.stringify(mappedProducts));
+              localStorage.setItem(CACHE_KEY_CATEGORIES, JSON.stringify(rawCategories));
+              localStorage.setItem(CACHE_KEY_TIMESTAMP, now.toString());
+          } catch (storageError) {
+              console.warn("No se pudo guardar en localStorage (posiblemente lleno):", storageError);
+          }
         }
       } catch (err: any) {
         console.error("❌ useStoreData error:", err);
@@ -116,6 +121,7 @@ export function useStoreData() {
     }
 
     fetchData();
+
     return () => {
       mounted = false;
     };

@@ -16,7 +16,7 @@ export interface Product {
   
   // Permite propiedades extra como 'discount' si las usas visualmente
   discount?: number;
-  price: string;        // viene como string desde API
+  price: number;        // viene como string desde API
   stock: number;
     // 0 | 1
   image_url: string | null; // id o path
