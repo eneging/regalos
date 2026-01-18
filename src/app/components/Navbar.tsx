@@ -20,6 +20,7 @@ import {
   Wine,
   UtensilsCrossed,
   Gift,
+  Book,
 } from "lucide-react";
 import SearchBar from "./SearchBar";
 
@@ -109,7 +110,12 @@ export default function Navbar() {
         </div>
 
         {/* Derecha: Contacto Rápido */}
-        <div className="flex items-center gap-4 text-gray-400">
+        <div className="flex items-center gap-4 text-gray-400">`
+          
+          <a href="/libro-reclamaciones" className="hover:text-white flex items-center gap-1 transition-colors">
+              <Book size={12} /> <span className="hidden lg:inline">Libro de Reclamaciones</span> 
+              
+           </a>
            <a href="tel:51933739769" className="hover:text-white flex items-center gap-1 transition-colors">
               <Phone size={12} /> <span className="hidden lg:inline">Pedidos:</span> 933 739 769
            </a>

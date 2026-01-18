@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
 
   env: {
     // ✅ ESTE ES EL QUE USA TODO TU FRONT
-    NEXT_PUBLIC_API_URL:"http://127.0.0.1:8000/api",
+    NEXT_PUBLIC_API_URL:"https://licorapi.puertoricoica.online/api",
 
     NEXT_PUBLIC_MP_PUBLIC_KEY:
       "APP_USR-ba1bb53f-827c-4c39-9e25-7716c4e57455",

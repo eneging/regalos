@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Facebook, Instagram, Twitter, Phone, Mail, MapPin } from "lucide-react";
-
+import Image from "next/image";
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -104,6 +104,26 @@ export default function Footer() {
 
             {/* Redes sociales */}
             <div>
+
+    <div>
+
+            <a href="/libro-reclamaciones" className=" flex items-center gap-1 transition-colors">
+             
+               <Image
+                       src="https://res.cloudinary.com/dhuggiq9q/image/upload/v1768675637/libro_de_reclamaciones_nx7tfc.jpg"
+                       alt="Fondo principal"
+                      width={140}
+                      height={50}
+                     
+                       fetchPriority="high"
+                       className="object-cover object-center p-3"
+                     />
+              
+              
+           </a>
+          </div>
+
+
               <h4 className="text-lg font-semibold text-white mb-5">Síguenos</h4>
               <div className="flex space-x-3">
                 {socialLinks.map((link) => (
@@ -120,6 +140,8 @@ export default function Footer() {
                   </a>
                 ))}
               </div>
+
+          
             </div>
 
           </div>
@@ -135,6 +157,8 @@ export default function Footer() {
             <Link href="/terminos" className="hover:text-orange-500 transition-colors">Términos y Condiciones</Link>
             <Link href="/privacidad" className="hover:text-orange-500 transition-colors">Política de Privacidad</Link>
           </div>
+
+          
         </div>
 
       </div>
