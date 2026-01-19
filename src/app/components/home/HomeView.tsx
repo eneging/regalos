@@ -100,23 +100,16 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
   const { addToCart } = useCart();
   const { scrollY } = useScroll();
 
-  // 1. Hook de Datos (Cliente)
   const { products, categories: clientCategories, loading } = useStoreData();
-
-  // 2. Lógica de Fusión de Datos:
   const activeCategories = clientCategories.length > 0 ? clientCategories : initialCategories;
-
-  // 3. Parallax suave para el fondo
   const yBackground = useTransform(scrollY, [0, 1000], [0, 200]);
 
-  // --- Lógica Modal ---
   useEffect(() => {
     if (typeof window !== "undefined") {
         const closedAt = localStorage.getItem("offerModalClosedAt");
         const now = Date.now();
-        const expiration = 10 * 60 * 1000; // 10 minutos
+        const expiration = 10 * 60 * 1000; 
       
-        // Solo mostramos si hay productos cargados y pasó el tiempo de expiración
         if (!loading && products.length > 0 && (!closedAt || now - parseInt(closedAt) > expiration)) {
           const timer = setTimeout(() => setShowOfferModal(true), 3000);
           return () => clearTimeout(timer);
@@ -129,12 +122,10 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
     setShowOfferModal(false);
   };
 
-  // Filtrado de categorías
   const filteredCategories = (activeCategories || []).filter(cat => 
     ALLOWED_CATEGORIES.includes(cat.slug)
   );
 
-  // Filtrado de ofertas
   const offers = (products || [])
     .filter((p) => Number(p.is_offer) === 1 && p.offer_price)
     .map((p) => {
@@ -156,7 +147,6 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            // 👇 CAMBIO IMPORTANTE: z-[11000] para superar al Navbar (9999) y al OfferProducts (10000)
             className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
           >
             <motion.div
@@ -180,8 +170,13 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
         )}
       </AnimatePresence>
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative w-full min-h-[90vh] flex items-center justify-center bg-zinc-950 overflow-hidden pt-20">
+      {/* --- HERO SECTION OPTIMIZADO PARA MÓVIL --- */}
+      {/* 1. min-h-auto: En móvil la altura se adapta al contenido (sin huecos vacíos).
+          2. md:min-h-[90vh]: En PC mantenemos la altura completa.
+          3. pb-12: Un poco de espacio abajo en móvil antes de las categorías.
+          4. pt-28: Ajustado para que el texto no choque con el Navbar pero suba más.
+      */}
+      <section className="relative w-full min-h-auto md:min-h-[90vh] flex items-start md:items-center justify-center bg-zinc-950 overflow-hidden pt-28 pb-12 md:pt-24 md:pb-0">
         
         {/* Fondo con Parallax */}
         <motion.div style={{ y: yBackground }} className="absolute inset-0 pointer-events-none">
@@ -190,21 +185,21 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         </motion.div>
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 grid lg:grid-cols-2 items-center gap-12">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 grid lg:grid-cols-2 items-center gap-8 md:gap-12">
           
           {/* Texto Hero */}
           <motion.div 
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="flex flex-col gap-6 max-w-2xl order-2 lg:order-1"
+            className="flex flex-col gap-5 md:gap-6 max-w-2xl order-2 lg:order-1"
           >
             <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 w-fit backdrop-blur-sm">
               <Zap size={16} className="text-orange-500 fill-orange-500 animate-pulse" />
               <span className="text-orange-400 text-xs md:text-sm font-bold tracking-wide uppercase">Envío Flash en Ica</span>
             </motion.div>
 
-            <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.95] tracking-tighter">
+            <motion.h1 variants={itemVariants} className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[0.95] tracking-tighter">
               La fiesta <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 animate-pulse">
                 llega a ti.
@@ -219,12 +214,12 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
               <SearchBar />
             </motion.div>
             
-            <motion.div variants={itemVariants} className="flex items-center gap-6 text-sm text-zinc-500 pt-4">
+            <motion.div variants={itemVariants} className="flex items-center gap-4 md:gap-6 text-xs md:text-sm text-zinc-500 pt-4">
               <div className="flex items-center gap-2 hover:text-orange-400 transition-colors cursor-default">
-                <ShieldCheck size={18} /> <span>100% Original</span>
+                <ShieldCheck size={16} className="md:w-[18px]" /> <span>100% Original</span>
               </div>
               <div className="flex items-center gap-2 hover:text-orange-400 transition-colors cursor-default">
-                <Truck size={18} /> <span>Delivery Express</span>
+                <Truck size={16} className="md:w-[18px]" /> <span>Delivery Express</span>
               </div>
             </motion.div>
           </motion.div>
@@ -252,16 +247,16 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
         </div>
       </section>
 
-      {/* --- CATEGORÍAS (Barra de scroll personalizada) --- */}
+      {/* --- CATEGORÍAS (Compactadas) --- */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1, duration: 0.5 }}
-        className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-lg shadow-black/50"
+        // pt-2 pb-2 para reducir altura en la barra sticky
+        className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 py-2 shadow-lg shadow-black/50"
       >
         <div className="max-w-7xl mx-auto px-4 relative">
-            <div className="overflow-x-auto pb-4 scroll-smooth touch-pan-x 
-                /* Custom Scrollbar Styles */
+            <div className="overflow-x-auto pb-2 scroll-smooth touch-pan-x 
                 [&::-webkit-scrollbar]:h-1.5
                 [&::-webkit-scrollbar-track]:bg-zinc-800/30
                 [&::-webkit-scrollbar-track]:rounded-full
@@ -304,15 +299,16 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
         </div>
       </motion.div>
 
-      {/* --- OFERTAS --- */}
-      <section className="py-24 px-4 md:px-8 max-w-7xl mx-auto relative">
+      {/* --- OFERTAS (Padding reducido) --- */}
+      {/* pt-8 para subir las ofertas y pegarlas a las categorías */}
+      <section className="pt-8 pb-24 md:py-24 px-4 md:px-8 max-w-7xl mx-auto relative">
         <div className="absolute top-20 left-0 w-64 h-64 bg-orange-500/5 rounded-full blur-[100px] pointer-events-none" />
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4"
+          className="flex flex-col md:flex-row justify-between items-end mb-8 md:mb-12 gap-4"
         >
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
