@@ -139,6 +139,7 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
     if (!token) {
       toast.info("Tu sesión expiró. Por favor inicia sesión nuevamente.");
       setShowAuth(true);
+      router.push(`/`);
       return null;
     }
     return token;
