@@ -18,7 +18,7 @@ export default function BottomNav() {
         </Link>
 
         <Link
-          href="/search"
+          href="/store"
           className="flex flex-col items-center text-gray-100 hover:text-black transition"
         >
          <Store className=" w-5 h-5"/>
