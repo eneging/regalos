@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
+import { toast, Slide } from "react-toastify";
 import { useCart } from "@/app/context/CartContext";
 //import { useAuth } from "@/app/context/AuthContext";
 import AuthModal from "@/app/components/AuthModal";
 import { getToken } from "@/services/authService"; // 👈 IMPORTANTE: Usamos el getter directo de cookies
+import { FiShoppingCart } from "react-icons/fi";
 
 /* =========================================
    ⚙️ 1. CONFIGURACIÓN
@@ -300,9 +301,30 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
               );
             }
 
-            toast.success("¡Pago Aprobado! 🎉");
+         
+
+             toast.success(
+                  <div className="flex flex-col text-left">
+                    <strong className="text-orange-400">¡Pago Aprobado! 🎉</strong>
+                   
+                  </div>,
+                  {
+                    position: "bottom-right",
+                    icon: <FiShoppingCart className="text-orange-400 text-xl" />,
+                    style: {
+                      background: "linear-gradient(135deg, #1a1a1a 0%, #292929 100%)",
+                      border: "1px solid #ff8c42",
+                      borderRadius: "12px",
+                      boxShadow: "0 0 10px #ff8c4288",
+                      color: "#fff",
+                      padding: "12px 16px",
+                    },
+                    autoClose: 2000,
+                    transition: Slide,
+                  }
+                );
             clearCart();
-            router.push(`/checkout/success?order_id=${dynamicOrderId}`);
+            router.push(`/`);
 
           } catch (err: any) {
             toast.error(err.message);
