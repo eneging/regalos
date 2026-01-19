@@ -132,7 +132,9 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
 
   // Función auxiliar para obtener el token válido
   const getValidToken = () => {
-    const token = getToken(); // Leemos directamente de la cookie
+    const token = getToken(); 
+    
+    // Leemos directamente de la cookie
     if (!token) {
       toast.info("Tu sesión expiró. Por favor inicia sesión nuevamente.");
       setShowAuth(true);
@@ -144,6 +146,8 @@ export default function CheckoutCulqi({ total, userData }: CheckoutCulqiProps) {
   const handlePay = useCallback(async () => {
     // 1. Validar Token FRESCO antes de empezar
     const activeToken = getValidToken();
+    console.log("🔍 DEBUG TOKEN:", activeToken); // <--- ¿Esto imprime null, undefined o el string?
+    console.log("🍪 DEBUG COOKIES:", document.cookie); // <--- ¿Ves tu cookie de sesión aquí?
     if (!activeToken) return; // Si no hay token, el modal ya se abrió en getValidToken
 
     // 2. Validaciones de Datos
