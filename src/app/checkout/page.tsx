@@ -144,18 +144,23 @@ export default function CheckoutPage() {
   const handleWhatsAppCheckout = () => {
     if (!isFormValid) return;
 
-    const PHONE_NUMBER = "51932563713"; // ⚠️ REEMPLAZA CON TU NÚMERO
+    const PHONE_NUMBER = "51932563713"; // Tu número (con código de país, sin +)
+
+    // Construimos el mensaje usando \n para los saltos de línea
+    let message = "*HOLA! 👋 QUIERO REALIZAR UN PEDIDO WEB* 🛒\n\n";
     
-    let message = `*HOLA! 👋 QUIERO REALIZAR UN PEDIDO WEB* 🛒\n\n`;
     message += `👤 *Cliente:* ${formData.first_name} ${formData.last_name}\n`;
     message += `📞 *Teléfono:* ${formData.phone}\n`;
     message += `📍 *Dirección:* ${formData.address}\n`;
     message += `📧 *Email:* ${formData.email}\n\n`;
+    
     message += `📝 *RESUMEN DEL PEDIDO:*\n`;
     
+    // Usamos forEach para agregar cada producto
     cart.forEach(item => {
       const itemTotal = (item.product.price * item.quantity).toFixed(2);
-      message += `▪️ ${item.quantity} x ${item.product.name} (S/ ${itemTotal})\n`;
+      // Usamos un guion simple o viñeta estándar para evitar problemas de compatibilidad
+      message += `• ${item.quantity} x ${item.product.name} (S/ ${itemTotal})\n`;
     });
 
     message += `\n--------------------------\n`;
@@ -163,14 +168,15 @@ export default function CheckoutPage() {
     message += `💰 *TOTAL A PAGAR: S/ ${total.toFixed(2)}*\n\n`;
     message += `💬 *Quedo a la espera de su confirmación para coordinar el pago.* 🚀`;
 
-    // 1. Limpiar Carrito
+    // 🔴 IMPORTANTE: Limpiar el carrito antes de ir a WhatsApp
     clearCart();
-    
-    // 2. Redirigir
-    const url = `https://wa.me/${PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
+
+    // 🟢 LA SOLUCIÓN AL ROMBO: encodeURIComponent
+    // Esta función convierte emojis, espacios y tildes en código legible para URLs (%20, %0A, etc.)
+    const url = `https://api.whatsapp.com/send?phone=${PHONE_NUMBER}&text=${encodeURIComponent(message)}`;
+
     window.open(url, '_blank');
   };
-
   // Render
   return (
     <div className="min-h-screen bg-black text-white relative overflow-x-hidden font-sans pb-24 selection:bg-orange-500/30">
