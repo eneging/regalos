@@ -104,7 +104,6 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
   const { products, categories: clientCategories, loading } = useStoreData();
 
   // 2. Lógica de Fusión de Datos:
-  // Priorizamos los datos del cliente (cache/api), si no, usamos props iniciales.
   const activeCategories = clientCategories.length > 0 ? clientCategories : initialCategories;
 
   // 3. Parallax suave para el fondo
@@ -141,7 +140,6 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
     .map((p) => {
       const price = Number(p.price);
       const offerPrice = Number(p.offer_price);
-      // Evitamos división por cero
       const discount = price > 0 ? Math.round(((price - offerPrice) / price) * 100) : 0;
       return { ...p, discount };
     })
@@ -158,7 +156,8 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            // 👇 CAMBIO IMPORTANTE: z-[11000] para superar al Navbar (9999) y al OfferProducts (10000)
+            className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0, y: 100 }}
@@ -173,7 +172,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
               >
                 <FiX size={20} />
               </button>
-              <div className="p-1">
+              <div className="p-1 ">
                 <OfferProducts products={offers} /> 
               </div>
             </motion.div>
