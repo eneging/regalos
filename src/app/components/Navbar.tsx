@@ -9,14 +9,12 @@ import Image from "next/image";
 import {
   Menu,
   X,
- 
   ShoppingCart,
   User,
   Heart,
   ChevronDown,
   Phone,
   ExternalLink,
-  // 👇 Nuevos iconos para las tiendas
   Wine,
   UtensilsCrossed,
   Gift,
@@ -25,38 +23,53 @@ import {
 import SearchBar from "./SearchBar";
 
 export default function Navbar() {
-
   const { cart } = useCart();
   const { openDrawer } = useCartDrawer();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const [scrolled, setScrolled] = useState(false);
 
+  // 1. Efecto para el cambio de color del Nav al hacer scroll
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // 🏪 TUS OTRAS TIENDAS (Ahora con Iconos en lugar de Img)
+  // ⭐ 2. NUEVO EFECTO: Bloquear scroll del body cuando el menú móvil está abierto
+  useEffect(() => {
+    if (mobileOpen) {
+      // Bloquea el scroll
+      document.body.style.overflow = "hidden";
+    } else {
+      // Restaura el scroll
+      document.body.style.overflow = "unset";
+    }
+
+    // Cleanup: Asegura que si sales de la página, el scroll vuelva a funcionar
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [mobileOpen]);
+
+  // 🏪 TUS OTRAS TIENDAS
   const marketplaces = [
     {
       name: "Licorería",
       href: "https://licoreria.puertoricoica.online",
-      icon: Wine, // 🍷 Icono para la licorería
+      icon: Wine,
       active: true,
     },
     {
       name: "Restobar",
       href: "https://restobar.puertoricoica.online",
-      icon: UtensilsCrossed, // 🍽️ Icono para el restobar
+      icon: UtensilsCrossed,
       active: false,
     },
     {
       name: "Regalos",
       href: "https://gifts.puertoricoica.online",
-      icon: Gift, // 🎁 Icono para regalos
+      icon: Gift,
       active: false,
     },
   ];
@@ -69,8 +82,6 @@ export default function Navbar() {
     { name: "Cervezas", href: "/categoria/cervezas" },
     { name: "combos", href: "/combos" },
   ];
-
-
 
   return (
     <>
@@ -93,7 +104,6 @@ export default function Navbar() {
                     m.active ? "opacity-100 cursor-default" : "opacity-50 hover:opacity-100"
                   }`}
                 >
-                  {/* Renderizamos el icono dinámicamente */}
                   <m.icon 
                     size={14} 
                     className={m.active ? "text-amber-500" : "text-gray-400 group-hover:text-white"} 
@@ -110,11 +120,9 @@ export default function Navbar() {
         </div>
 
         {/* Derecha: Contacto Rápido */}
-        <div className="flex items-center gap-4 text-gray-400">`
-          
+        <div className="flex items-center gap-4 text-gray-400">
           <a href="/libro-reclamaciones" className="hover:text-white flex items-center gap-1 transition-colors">
               <Book size={12} /> <span className="hidden lg:inline">Libro de Reclamaciones</span> 
-              
            </a>
            <a href="tel:51933739769" className="hover:text-white flex items-center gap-1 transition-colors">
               <Phone size={12} /> <span className="hidden lg:inline">Pedidos:</span> 933 739 769
@@ -168,14 +176,10 @@ export default function Navbar() {
           {/* 3. SEARCH & ACTIONS */}
           <div className="flex items-center gap-4 flex-1 justify-end">
             
-            {/* Search Bar */}
-           <div className="lg:block hidden ">
-
-      <SearchBar></SearchBar>
-
-
-           </div>
-     
+            {/* Search Bar Desktop */}
+            <div className="lg:block hidden ">
+               <SearchBar />
+            </div>
 
             {/* Iconos de Acción */}
             <div className="flex items-center gap-3 border-l border-white/10 pl-4">
@@ -208,18 +212,24 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="lg:hidden  p-4"><SearchBar ></SearchBar></div>
+        {/* Search Bar Mobile */}
+        <div className="lg:hidden p-4">
+            <SearchBar />
+        </div>
 
         {/* =========================================================
             📱 MOBILE MENU (Slide-over)
         ========================================================== */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-[99999] flex justify-end">
+          <div className="fixed inset-0 z-[9990] flex justify-end">
+            
+            {/* Backdrop: Cierra el menú al hacer click fuera */}
             <div 
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
 
+            {/* Sidebar Container */}
             <aside className="relative w-[85%] max-w-[350px] h-full bg-[#0f0f0f] text-white p-6 shadow-2xl flex flex-col border-l border-white/10 overflow-y-auto">
               
               <div className="flex justify-between items-center mb-8">
@@ -234,13 +244,9 @@ export default function Navbar() {
                  </button>
               </div>
 
-              {/* Mobile Search */}
+              {/* Mobile Search dentro del menú */}
               <div className="mb-6 relative">
-                 
-                   
-                    
-
-                  <SearchBar></SearchBar>
+                  <SearchBar />
               </div>
 
               {/* Links de Categorías */}
@@ -263,7 +269,7 @@ export default function Navbar() {
                 ))}
               </div>
 
-              {/* 👇 SWITCHER DE TIENDAS (MÓVIL) CON ICONOS GRANDES */}
+              {/* 👇 SWITCHER DE TIENDAS (MÓVIL) */}
               <div className="mt-auto pt-6 border-t border-white/10">
                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Otras Tiendas Puerto Rico</p>
                  <div className="grid grid-cols-2 gap-3">
@@ -275,7 +281,6 @@ export default function Navbar() {
                             rel="noopener noreferrer"
                             className="flex flex-col items-center justify-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5 hover:border-amber-500/30 hover:bg-white/10 transition-all group"
                         >
-                            {/* Icono Grande */}
                             <m.icon size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
                             
                             <div className="flex items-center gap-1 text-xs text-gray-300 group-hover:text-white">
