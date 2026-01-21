@@ -136,6 +136,9 @@ export default function Navbar() {
                 />
             </div>
           </Link>
+   
+              <span className="text-gray-700 ">|</span>
+          
 
           {/* MENÚ DE ESCRITORIO */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
