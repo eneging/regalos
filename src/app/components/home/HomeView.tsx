@@ -235,12 +235,12 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
               
               <motion.div variants={floatingAnimation} animate="animate" className="relative z-10 w-full h-auto flex justify-center">
                 <Image
-                  src="https://res.cloudinary.com/dck9uinqa/image/upload/v1760996469/depositphotos_110689618-stock-photo-bottles-of-several-whiskey-brands_kbuky1.jpg"
+                  src="https://res.cloudinary.com/dhuggiq9q/image/upload/v1769027243/Gemini_Generated_Image_3lw4wk3lw4wk3lw4_p7reae.png"
                   alt="Botellas Premium"
                   width={700}
                   height={800}
                   priority
-                  className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+                  className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)] "
                 />
               </motion.div>
           </motion.div>

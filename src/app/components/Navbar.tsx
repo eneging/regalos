@@ -162,9 +162,14 @@ export default function Navbar() {
               <Link href="/login" className="hidden sm:block text-gray-400 hover:text-white transition p-2">
                 <User size={22} />
               </Link>
-              <Link href="/wishlist" className="hidden sm:block text-gray-400 hover:text-amber-500 transition p-2">
+
+              {/*
+              
+               <Link href="/wishlist" className="hidden sm:block text-gray-400 hover:text-amber-500 transition p-2">
                 <Heart size={22} />
               </Link>
+              */ }
+             
               
               {/* Botón Carrito Mejorado */}
               <button 
