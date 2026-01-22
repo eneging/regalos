@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CULQI_PUBLIC_KEY:
       "pk_test_h6x1GXjwAYCK2fLD",
 
-    NEXTAUTH_URL: "https://licorapi.puertoricoica.online/api",
+    NEXT_PUBLIC_URLNEXTAUTH_URL: "https://licorapi.puertoricoica.online/api",
     NEXTAUTH_SECRET: "tu_secreto_super_seguro_generalo_con_openssl",
 
     GOOGLE_CLIENT_ID:
