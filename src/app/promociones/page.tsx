@@ -1,24 +1,25 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
-import { Tag, ShoppingCart, AlertCircle } from "lucide-react";
+import { Sparkles, AlertCircle } from "lucide-react"; // Cambiado Tag por Sparkles
 import { useStoreData } from "../hooks/useStoreData";
-import { useCart } from "../context/CartContext";
+import ProductCard from "../components/ProductCard"; // Importamos el componente reutilizable
 
 const PromocionesPage = () => {
   const { products, categories, loading, error } = useStoreData();
-  const { addToCart } = useCart();
 
-  const offerProducts = products.filter((p) => p.is_offer);
+  // Filtramos solo ofertas reales
+  const offerProducts = products.filter((p) => 
+    Boolean(p.is_offer) && Number(p.offer_price) > 0 && Number(p.offer_price) < Number(p.price)
+  );
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="h-64 bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse"
+            className="h-80 bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse"
           />
         ))}
       </div>
@@ -27,7 +28,7 @@ const PromocionesPage = () => {
 
   if (error) {
     return (
-      <div className="max-w-xl mx-auto mt-20 p-4 flex items-center gap-2 text-red-400 bg-red-950/30 border border-red-900 rounded-xl">
+      <div className="max-w-xl mx-auto mt-20 p-4 flex items-center gap-2 text-rose-400 bg-rose-950/30 border border-rose-900 rounded-xl">
         <AlertCircle size={20} />
         {error}
       </div>
@@ -36,89 +37,47 @@ const PromocionesPage = () => {
 
   if (offerProducts.length === 0) {
     return (
-      <div className="text-center py-20 text-zinc-400">
-        No hay promociones activas por ahora
+      <div className="text-center py-20 text-zinc-400 flex flex-col items-center">
+        <Sparkles size={48} className="text-zinc-600 mb-4 opacity-50" />
+        <h2 className="text-xl font-bold text-white mb-2">Sin sorpresas por ahora</h2>
+        <p>No hay promociones activas en este momento. ¡Vuelve pronto!</p>
       </div>
     );
   }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-12">
+    <main className="max-w-7xl mx-auto px-4 py-12 min-h-screen">
+      
       {/* HEADER */}
-      <div className="flex items-center gap-3 mb-10">
-        <Tag className="text-orange-500 w-7 h-7" />
-        <h1 className="text-3xl font-bold text-white">
-          Promociones y Ofertas
-        </h1>
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-10 border-b border-white/5 pb-8">
+        <div className="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+             <Sparkles className="text-rose-500 w-8 h-8 animate-pulse" />
+        </div>
+        <div>
+            <h1 className="text-3xl md:text-4xl font-black text-white">
+            Ofertas Especiales
+            </h1>
+            <p className="text-zinc-400 mt-1">
+                Detalles inolvidables a precios increíbles.
+            </p>
+        </div>
       </div>
 
       {/* GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+      {/* Usamos el mismo grid responsive que en HomeView para consistencia */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
         {offerProducts.map((product) => {
+          // Buscamos la categoría para pasar el nombre correcto
           const category = categories.find(
             (c) => c.id === product.product_category_id
           );
 
-          const discount = Math.round(
-            ((Number(product.price) - Number(product.offer_price)) /
-              Number(product.price)) *
-              100
-          );
-
-          const imageSrc =
-            product.image_url && product.image_url.startsWith("http")
-              ? product.image_url
-              : `/assets/${product.category?.id}/${product.name}.png`;
-
           return (
-            <div
-              key={product.id}
-              className="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500 transition group"
-            >
-              {/* Discount */}
-              <span className="absolute top-3 left-3 z-10 bg-orange-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                -{discount}%
-              </span>
-
-              {/* Image */}
-              <div className="relative h-40 bg-zinc-950">
-                <Image
-                  src={imageSrc}
-                  alt={product.name}
-                  fill
-             className="object-cover group-hover:scale-110 transition-transform duration-500"
-    sizes="(max-width: 768px) 50vw, 200px"
-                />
-              </div>
-
-              {/* Info */}
-              <div className="p-4 flex flex-col gap-2">
-                <p className="text-xs text-orange-500 uppercase">
-                  {category?.name || "Oferta"}
-                </p>
-
-                <h3 className="text-sm font-semibold text-white line-clamp-2">
-                  {product.name}
-                </h3>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-white">
-                    S/ {Number(product.offer_price).toFixed(2)}
-                  </span>
-                  <span className="text-xs text-zinc-500 line-through">
-                    S/ {Number(product.price).toFixed(2)}
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => addToCart(product)}
-                  className="mt-2 w-full bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold py-2 rounded-lg flex items-center justify-center gap-2 active:scale-95"
-                >
-                  <ShoppingCart size={16} />
-                  Agregar
-                </button>
-              </div>
-            </div>
+            <ProductCard 
+                key={product.id} 
+                product={product} 
+                categoryName={category?.name} 
+            />
           );
         })}
       </div>

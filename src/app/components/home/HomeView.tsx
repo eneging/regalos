@@ -12,8 +12,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { FiX } from "react-icons/fi";
 import {
-  ShoppingCart, Zap, Truck, ShieldCheck, Star, Beer, Wine, 
-  Martini, GlassWater, Utensils, PartyPopper, Gift, Droplets, ChevronRight
+  ShoppingCart,  Truck, ShieldCheck,
+  Gift, Heart, Flower, Sparkles, Smile, 
+  ChevronRight, Gem, Package
 } from "lucide-react";
 
 // Hooks & Services
@@ -61,22 +62,22 @@ const floatingAnimation: Variants = {
 };
 
 // =====================================================================
-// 🧩 COMPONENTES AUXILIARES
+// 🧩 COMPONENTES AUXILIARES (Adaptados para Regalos)
 // =====================================================================
 
 const CategoryIcon = ({ slug }: { slug: string }) => {
   const s = slug ? slug.toLowerCase() : "";
   const className = "w-6 h-6 md:w-8 md:h-8";
   
-  if (s.includes("cerveza") || s.includes("beer")) return <Beer className={className} />;
-  if (s.includes("vino")) return <Wine className={className} />;
-  if (s.includes("coctel") || s.includes("gin") || s.includes("vodka") || s.includes("licores")) return <Martini className={className} />;
-  if (s.includes("piqueo") || s.includes("snack") || s.includes("tequenos")) return <Utensils className={className} />;
-  if (s.includes("whisky") || s.includes("ron") || s.includes("pisco")) return <GlassWater className={className} />;
-  if (s.includes("regalo")) return <Gift className={className} />;
-  if (s.includes("agua") || s.includes("hielo")) return <Droplets className={className} />;
+  if (s.includes("flor") || s.includes("ramo")) return <Flower className={className} />;
+  if (s.includes("amor") || s.includes("san-valentin")) return <Heart className={className} />;
+  if (s.includes("peluche") || s.includes("os")) return <Smile className={className} />;
+  if (s.includes("chocolate") || s.includes("dulce")) return <Gift className={className} />;
+  if (s.includes("joya") || s.includes("accesorio")) return <Gem className={className} />;
+  if (s.includes("personalizado") || s.includes("pack")) return <Package className={className} />;
+  if (s.includes("globo") || s.includes("fiesta")) return <Sparkles className={className} />;
   
-  return <PartyPopper className={className} />;
+  return <Gift className={className} />;
 };
 
 interface HomeViewProps {
@@ -84,15 +85,16 @@ interface HomeViewProps {
   products?: Product[];
 }
 
+// 🎁 NUEVAS CATEGORÍAS PERMITIDAS PARA REGALOS
 const ALLOWED_CATEGORIES = [
-  "whisky", "ron", "vodka", "gin", "tequilas-y-mezcal", "piscos", 
-  "vinos", "cervezas", "licores-y-spirits", "hielos-y-complementos", 
-  "aguas-y-energizantes", "promociones", "estuches-y-regalos", 
-  "tequenos-y-piqueos", "para-picar"
+  "flores-y-rosas", "peluches", "chocolates-y-dulces", 
+  "desayunos-sorpresa", "packs-regalo", "globos-y-decoracion", 
+  "joyeria-y-accesorios", "tazas-y-personalizados", "promociones", 
+  "aniversario", "cumpleanos"
 ];
 
 // =====================================================================
-// 🚀 COMPONENTE PRINCIPAL
+// 🚀 COMPONENTE PRINCIPAL (TIENDA DE REGALOS)
 // =====================================================================
 
 export default function HomeView({ categories: initialCategories = [] }: HomeViewProps) {
@@ -106,7 +108,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-        const closedAt = localStorage.getItem("offerModalClosedAt");
+        const closedAt = localStorage.getItem("offerModalGiftClosedAt"); // Key distinta para evitar conflicto
         const now = Date.now();
         const expiration = 10 * 60 * 1000; 
       
@@ -118,7 +120,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
   }, [loading, products]);
 
   const handleCloseModal = () => {
-    localStorage.setItem("offerModalClosedAt", Date.now().toString());
+    localStorage.setItem("offerModalGiftClosedAt", Date.now().toString());
     setShowOfferModal(false);
   };
 
@@ -138,7 +140,8 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
     .slice(0, 10);
 
   return (
-    <main className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-orange-500 selection:text-white overflow-x-hidden">
+    // CAMBIO DE ESTILO: Selection color ahora es rose-500
+    <main className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-rose-500 selection:text-white overflow-x-hidden">
       
       {/* --- MODAL (Ofertas) --- */}
       <AnimatePresence>
@@ -154,11 +157,12 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: 100 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl relative overflow-hidden ring-1 ring-orange-500/20"
+              // Borde rosado
+              className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl relative overflow-hidden ring-1 ring-rose-500/20"
             >
               <button 
                 onClick={handleCloseModal} 
-                className="absolute top-4 right-4 z-20 p-2 bg-black/50 text-white rounded-full hover:bg-orange-500 transition-colors hover:rotate-90 duration-300"
+                className="absolute top-4 right-4 z-20 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors hover:rotate-90 duration-300"
               >
                 <FiX size={20} />
               </button>
@@ -170,18 +174,13 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
         )}
       </AnimatePresence>
 
-      {/* --- HERO SECTION OPTIMIZADO PARA MÓVIL --- */}
-      {/* 1. min-h-auto: En móvil la altura se adapta al contenido (sin huecos vacíos).
-          2. md:min-h-[90vh]: En PC mantenemos la altura completa.
-          3. pb-12: Un poco de espacio abajo en móvil antes de las categorías.
-          4. pt-28: Ajustado para que el texto no choque con el Navbar pero suba más.
-      */}
+      {/* --- HERO SECTION --- */}
       <section className="relative w-full min-h-auto md:min-h-[90vh] flex items-start md:items-center justify-center bg-zinc-950 overflow-hidden pt-28 pb-12 md:pt-24 md:pb-0">
         
-        {/* Fondo con Parallax */}
+        {/* Fondo con Parallax - Tonos Rosas/Violetas */}
         <motion.div style={{ y: yBackground }} className="absolute inset-0 pointer-events-none">
-             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px]" />
-             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[120px]" />
+             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rose-600/10 rounded-full blur-[120px]" />
+             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[120px]" />
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         </motion.div>
 
@@ -194,65 +193,66 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
             animate="visible"
             className="flex flex-col gap-5 md:gap-6 max-w-2xl order-2 lg:order-1"
           >
-            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 w-fit backdrop-blur-sm">
-              <Zap size={16} className="text-orange-500 fill-orange-500 animate-pulse" />
-              <span className="text-orange-400 text-xs md:text-sm font-bold tracking-wide uppercase">Envío Flash en Ica</span>
+            {/* Pill "Envío Sorpresa" */}
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 w-fit backdrop-blur-sm">
+              <Gift size={16} className="text-rose-500 fill-rose-500 animate-bounce" />
+              <span className="text-rose-400 text-xs md:text-sm font-bold tracking-wide uppercase">Envío Sorpresa en Ica</span>
             </motion.div>
 
             <motion.h1 variants={itemVariants} className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[0.95] tracking-tighter">
-              La fiesta <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 animate-pulse">
-                llega a ti.
+              El detalle <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-pink-500 to-purple-600">
+                perfecto.
               </span>
             </motion.h1>
 
             <motion.p variants={itemVariants} className="text-zinc-400 text-lg md:text-xl leading-relaxed max-w-lg">
-              Licores premium, cervezas heladas y complementos entregados en minutos. <span className="text-white font-medium">Sin salir de casa.</span>
+              Regala emociones. Flores frescas, peluches gigantes y packs personalizados. <span className="text-white font-medium">Creamos momentos inolvidables.</span>
             </motion.p>
 
-            <motion.div variants={itemVariants} className="w-full max-w-md shadow-2xl shadow-orange-900/20 rounded-2xl z-50 transform hover:scale-[1.02] transition-transform duration-300">
+            <motion.div variants={itemVariants} className="w-full max-w-md shadow-2xl shadow-rose-900/20 rounded-2xl z-50 transform hover:scale-[1.02] transition-transform duration-300">
               <SearchBar />
             </motion.div>
             
             <motion.div variants={itemVariants} className="flex items-center gap-4 md:gap-6 text-xs md:text-sm text-zinc-500 pt-4">
-              <div className="flex items-center gap-2 hover:text-orange-400 transition-colors cursor-default">
-                <ShieldCheck size={16} className="md:w-[18px]" /> <span>100% Original</span>
+              <div className="flex items-center gap-2 hover:text-rose-400 transition-colors cursor-default">
+                <Heart size={16} className="md:w-[18px]" /> <span>Hecho con amor</span>
               </div>
-              <div className="flex items-center gap-2 hover:text-orange-400 transition-colors cursor-default">
-                <Truck size={16} className="md:w-[18px]" /> <span>Delivery Express</span>
+              <div className="flex items-center gap-2 hover:text-rose-400 transition-colors cursor-default">
+                <Truck size={16} className="md:w-[18px]" /> <span>Entrega programada</span>
               </div>
             </motion.div>
           </motion.div>
 
-          {/* Imagen Hero Flotante */}
+          {/* Imagen Hero Flotante (Placeholder de Regalos) */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative hidden lg:flex justify-center items-center order-1 lg:order-2 perspective-1000"
           >
-              <div className="absolute w-[400px] h-[400px] bg-gradient-to-tr from-orange-500/30 to-amber-600/30 rounded-full blur-[80px] animate-pulse" />
+              <div className="absolute w-[400px] h-[400px] bg-gradient-to-tr from-rose-500/30 to-purple-600/30 rounded-full blur-[80px] animate-pulse" />
               
               <motion.div variants={floatingAnimation} animate="animate" className="relative z-10 w-full h-auto flex justify-center">
+                {/* NOTA: Reemplazar src por una imagen de un pack de regalo o oso de peluche */}
                 <Image
-                  src="https://res.cloudinary.com/dhuggiq9q/image/upload/v1769027243/Gemini_Generated_Image_3lw4wk3lw4wk3lw4_p7reae.png"
-                  alt="Botellas Premium"
-                  width={700}
-                  height={800}
+                  src="https://res.cloudinary.com/dhuggiq9q/image/upload/v1769047907/Gemini_Generated_Image_snblq9snblq9snbl_xz4xiy.png" 
+                  alt="Regalo Sorpresa"
+                  width={600}
+                  height={600}
                   priority
-                  className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)] "
+                  className="object-contain drop-shadow-[0_25px_50px_rgba(244,63,94,0.3)]"
                 />
               </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* --- CATEGORÍAS (Compactadas) --- */}
+      {/* --- CATEGORÍAS (Barra Sticky) --- */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1, duration: 0.5 }}
-        // pt-2 pb-2 para reducir altura en la barra sticky
         className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 py-2 shadow-lg shadow-black/50"
       >
         <div className="max-w-7xl mx-auto px-4 relative">
@@ -262,7 +262,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
                 [&::-webkit-scrollbar-track]:rounded-full
                 [&::-webkit-scrollbar-thumb]:bg-zinc-600
                 [&::-webkit-scrollbar-thumb]:rounded-full
-                [&::-webkit-scrollbar-thumb]:hover:bg-orange-500
+                [&::-webkit-scrollbar-thumb]:hover:bg-rose-500
                 [&::-webkit-scrollbar-thumb]:transition-colors
             ">
                 <motion.div 
@@ -276,9 +276,10 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
                         <motion.div key={cat.id} variants={itemVariants}>
                           <Link 
                             href={`/categoria/${cat.slug}`} 
-                            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-orange-500 hover:bg-zinc-800 transition-all group active:scale-95 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)]"
+                            // Hover border cambiado a Rose
+                            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-rose-500 hover:bg-zinc-800 transition-all group active:scale-95 hover:shadow-[0_0_15px_rgba(244,63,94,0.15)]"
                           >
-                              <span className="text-orange-500 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-300">
+                              <span className="text-rose-500 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-300">
                                   <CategoryIcon slug={cat.slug} />
                               </span>
                               <span className="text-zinc-300 font-bold group-hover:text-white capitalize text-sm whitespace-nowrap">
@@ -288,6 +289,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
                         </motion.div>
                     ))
                   ) : (
+                    // Skeleton Loading
                     <div className="flex gap-2 w-full justify-start">
                         {[1,2,3,4,5].map(i => (
                           <div key={i} className="w-32 h-12 bg-zinc-900/80 rounded-xl animate-pulse border border-zinc-800/50" />
@@ -299,10 +301,9 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
         </div>
       </motion.div>
 
-      {/* --- OFERTAS (Padding reducido) --- */}
-      {/* pt-8 para subir las ofertas y pegarlas a las categorías */}
+      {/* --- OFERTAS --- */}
       <section className="pt-8 pb-24 md:py-24 px-4 md:px-8 max-w-7xl mx-auto relative">
-        <div className="absolute top-20 left-0 w-64 h-64 bg-orange-500/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-20 left-0 w-64 h-64 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -312,11 +313,11 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
         >
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                Ofertas Relámpago <Zap className="text-yellow-500 fill-yellow-500 animate-bounce" size={28}/>
+                Ofertas Especiales <Sparkles className="text-yellow-400 fill-yellow-400 animate-pulse" size={28}/>
               </h2>
-              <p className="text-zinc-400">Precios bajos por tiempo limitado.</p>
+              <p className="text-zinc-400">Detalles hermosos a precios increíbles.</p>
             </div>
-            <Link href="/promociones" className="group flex items-center gap-2 text-orange-500 font-bold hover:text-white transition-colors bg-orange-500/10 px-4 py-2 rounded-full">
+            <Link href="/promociones" className="group flex items-center gap-2 text-rose-500 font-bold hover:text-white transition-colors bg-rose-500/10 px-4 py-2 rounded-full">
                 Ver todas <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
             </Link>
         </motion.div>
@@ -338,9 +339,10 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
                 key={item.id}
                 variants={itemVariants}
                 whileHover={{ y: -10, transition: { duration: 0.2 } }}
-                className="group relative bg-zinc-900 rounded-3xl border border-zinc-800 hover:border-orange-500/50 transition-colors hover:shadow-2xl hover:shadow-orange-900/10 flex flex-col overflow-hidden"
+                // Hover border cambiado a Rose
+                className="group relative bg-zinc-900 rounded-3xl border border-zinc-800 hover:border-rose-500/50 transition-colors hover:shadow-2xl hover:shadow-rose-900/10 flex flex-col overflow-hidden"
               >
-                <div className="absolute top-3 left-3 z-20 bg-red-600 text-white text-[10px] md:text-xs font-black px-2.5 py-1 rounded-lg shadow-lg rotate-[-2deg] group-hover:rotate-0 transition-transform">
+                <div className="absolute top-3 left-3 z-20 bg-rose-600 text-white text-[10px] md:text-xs font-black px-2.5 py-1 rounded-lg shadow-lg rotate-[-2deg] group-hover:rotate-0 transition-transform">
                   -{item.discount}%
                 </div>
 
@@ -360,7 +362,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
 
                 <div className="p-5 flex flex-col flex-1 justify-between bg-zinc-900 relative z-10">
                   <div>
-                    <h3 className="text-white text-sm font-bold line-clamp-2 leading-snug mb-3 min-h-[2.5em] group-hover:text-orange-400 transition-colors">
+                    <h3 className="text-white text-sm font-bold line-clamp-2 leading-snug mb-3 min-h-[2.5em] group-hover:text-rose-400 transition-colors">
                         {item.name}
                     </h3>
                     
@@ -376,7 +378,8 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
 
                   <button
                     onClick={() => addToCart(item)}
-                    className="mt-4 w-full bg-zinc-800 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:shadow-lg shadow-orange-500/20 group/btn"
+                    // Botón cambiado a Rose
+                    className="mt-4 w-full bg-zinc-800 hover:bg-rose-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:shadow-lg shadow-rose-500/20 group/btn"
                   >
                     <ShoppingCart size={18} className="group-hover/btn:animate-bounce" />
                     <span className="md:hidden lg:inline">Agregar</span>
@@ -386,19 +389,19 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
             ))
           ) : (
             <div className="col-span-full py-16 text-center bg-zinc-900/50 rounded-3xl border border-zinc-800 border-dashed">
-              <p className="text-zinc-500 text-lg">No hay ofertas activas en este momento.</p>
+              <p className="text-zinc-500 text-lg">Pronto nuevas sorpresas aquí.</p>
             </div>
           )}
         </motion.div>
       </section>
 
-      {/* --- TRUST SIGNALS --- */}
+      {/* --- TRUST SIGNALS (Mensajes adaptados) --- */}
       <section className="bg-zinc-900 py-16 border-y border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: Truck, title: "Delivery Flash", desc: "Entrega rápida en Ica" },
-              { icon: ShieldCheck, title: "Garantía Total", desc: "Productos 100% originales" },
-              { icon: Star, title: "Atención VIP", desc: "Soporte personalizado" }
+              { icon: Truck, title: "Envío Sorpresa", desc: "Coordinamos la entrega perfecta" },
+              { icon: Heart, title: "Calidad Garantizada", desc: "Productos seleccionados con amor" },
+              { icon: ShieldCheck, title: "Pago Seguro", desc: "Tus datos siempre protegidos" }
             ].map((feature, i) => (
               <motion.div 
                 key={i}
@@ -409,7 +412,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
                 whileHover={{ scale: 1.03, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
                 className="flex items-center gap-5 p-8 rounded-3xl bg-zinc-950/50 border border-zinc-800 cursor-default group"
               >
-                <div className="p-4 bg-orange-500/10 rounded-2xl text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300">
+                <div className="p-4 bg-rose-500/10 rounded-2xl text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300">
                    <feature.icon size={32} />
                 </div>
                 <div>
@@ -422,7 +425,7 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
       </section>
 
       {/* --- BANNER FINAL --- */}
-      <section className="relative w-full py-32 bg-gradient-to-br from-orange-600 to-red-700 text-center overflow-hidden">
+      <section className="relative w-full py-32 bg-gradient-to-br from-rose-600 to-purple-800 text-center overflow-hidden">
          <motion.div 
            animate={{ rotate: 360 }}
            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
@@ -436,12 +439,12 @@ export default function HomeView({ categories: initialCategories = [] }: HomeVie
               transition={{ duration: 0.5 }}
               className="text-4xl md:text-6xl font-black text-white mb-8 leading-tight drop-shadow-xl"
             >
-              ¿Listo para empezar la fiesta?
+              ¿Listo para sorprender?
             </motion.h2>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link href="/combos" className="inline-flex items-center gap-3 bg-black text-white hover:bg-zinc-900 font-bold py-5 px-12 rounded-full shadow-2xl transition-all text-lg border-4 border-white/10 hover:border-white/30">
-                    <PartyPopper size={24} className="text-orange-500" /> 
-                    <span>Ver Packs de Fiesta</span>
+                <Link href="/catalogo" className="inline-flex items-center gap-3 bg-white text-rose-600 hover:bg-zinc-100 font-bold py-5 px-12 rounded-full shadow-2xl transition-all text-lg border-4 border-white/20">
+                    <Gift size={24} /> 
+                    <span>Ver Catálogo Completo</span>
                 </Link>
             </motion.div>
          </div>

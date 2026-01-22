@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ShoppingCart, Check, ImageOff } from "lucide-react";
+import { ShoppingCart, Check, ImageOff } from "lucide-react"; // Importé Heart opcionalmente
 import { useCart } from "../context/CartContext";
 
 interface ProductCardProps {
@@ -21,8 +21,7 @@ const ProductCard = ({ product, categoryName }: ProductCardProps) => {
   const price = Number(product.price) || 0;
   const offerPrice = Number(product.offer_price) || 0;
   
-  // 2. CORRECCIÓN DEL "0": Convertimos is_offer a Booleano real (!!)
-  // Verificamos que sea oferta, que el precio oferta sea menor, y que el descuento sea mayor a 0
+  // 2. CORRECCIÓN DEL "0": Convertimos is_offer a Booleano real
   const hasValidOffer = Boolean(product.is_offer) && offerPrice < price && offerPrice > 0;
 
   const discount = hasValidOffer
@@ -44,11 +43,12 @@ const ProductCard = ({ product, categoryName }: ProductCardProps) => {
   };
 
   return (
-    <div className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-900/10 transition-all duration-300 flex flex-col h-full select-none">
+    // CAMBIO: Bordes y sombras en Rose
+    <div className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-900/10 transition-all duration-300 flex flex-col h-full select-none">
       
-      {/* 3. CORRECCIÓN VISUAL: Renderizado condicional estricto */}
+      {/* 3. CORRECCIÓN VISUAL: Badge de Oferta en Rojo/Rosa */}
       {hasValidOffer && discount > 0 && (
-        <span className="absolute top-3 left-3 z-10 bg-gradient-to-r from-orange-600 to-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+        <span className="absolute top-3 left-3 z-10 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
           -{discount}%
         </span>
       )}
@@ -72,18 +72,20 @@ const ProductCard = ({ product, categoryName }: ProductCardProps) => {
           </div>
         )}
         
-        {/* Gradiente sutil para mejorar lectura sobre imágenes claras */}
+        {/* Gradiente sutil */}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent opacity-60 pointer-events-none" />
       </div>
 
       <div className="p-4 flex flex-col gap-2 flex-grow">
-        <p className="text-xs font-medium text-orange-400 uppercase tracking-wide truncate">
-          {categoryName || product.category?.name || "Producto"}
+        {/* CAMBIO: Texto Categoría en Rose */}
+        <p className="text-xs font-medium text-rose-400 uppercase tracking-wide truncate">
+          {categoryName || product.category?.name || "Detalle"}
         </p>
 
+        {/* CAMBIO: Hover Texto en Rose */}
         <h3 
-            className="text-base font-bold text-white leading-tight line-clamp-2 group-hover:text-orange-500 transition-colors"
-            title={product.name} // UX: Tooltip nativo para nombres largos
+            className="text-base font-bold text-white leading-tight line-clamp-2 group-hover:text-rose-500 transition-colors"
+            title={product.name} 
         >
           {product.name}
         </h3>
@@ -103,12 +105,13 @@ const ProductCard = ({ product, categoryName }: ProductCardProps) => {
           <button
             onClick={handleAddToCart}
             disabled={isAdded}
+            // CAMBIO: Botón Rose por defecto, y feedback en Pink/Rose intenso
             className={`
                 relative overflow-hidden rounded-xl px-4 py-2.5 font-bold text-sm transition-all duration-300 flex items-center gap-2
                 ${
                   isAdded
-                    ? "bg-green-600 text-white scale-95"
-                    : "bg-orange-600 text-white hover:bg-orange-500 hover:-translate-y-0.5 shadow-lg shadow-orange-900/20 active:scale-95"
+                    ? "bg-rose-700 text-white scale-95" // Estado "Agregado"
+                    : "bg-zinc-800 text-white hover:bg-rose-600 hover:-translate-y-0.5 shadow-lg hover:shadow-rose-500/20 active:scale-95 group-hover:bg-rose-600" // Estado Normal
                 }
             `}
             aria-label={isAdded ? "Producto agregado" : "Agregar al carrito"}

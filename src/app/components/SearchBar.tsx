@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, Gift, Sparkles } from "lucide-react"; // Agregué iconos temáticos
 import { autocompleteProducts } from "@/services/search.service";
 import { useClickOutside } from "@/app/hooks/useClickOutside";
 
-/* 🔥 INTERFAZ LOCAL (evita conflictos de tipos externos) */
+/* 🔥 INTERFAZ LOCAL */
 interface Product {
   id: number;
   name: string;
@@ -17,7 +17,7 @@ interface Product {
   category?: {
     id: number;
     name: string;
-    slug?: string; // slug opcional para evitar choque de tipos
+    slug?: string;
   } | null;
 }
 
@@ -29,10 +29,8 @@ export default function SearchBar() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  /* ✅ REF CORRECTO PARA <div> */
   const containerRef = useRef<HTMLDivElement>(null);
 
-  /* ✅ CAST SEGURO SOLO PARA EL HOOK */
   useClickOutside(
     containerRef as React.RefObject<HTMLElement>,
     () => setIsOpen(false)
@@ -96,19 +94,21 @@ export default function SearchBar() {
       className="relative w-full max-w-xl mx-auto z-50"
     >
       <form onSubmit={handleSubmit} className="relative group">
-        {/* INPUT */}
+        {/* INPUT ESTILIZADO (Rose) */}
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
-          placeholder="Buscar ron, whisky..."
-          className="w-full rounded-2xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 py-3 pl-12 pr-10 outline-none transition-all duration-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-lg shadow-black/50"
+          // Placeholder temático
+          placeholder="Buscar flores, peluches, detalles..."
+          // Colores de foco cambiados a Rose
+          className="w-full rounded-2xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 py-3 pl-12 pr-10 outline-none transition-all duration-300 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-lg shadow-black/50"
         />
 
         {/* ICONO SEARCH / LOADER */}
         <button
           type="submit"
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500"
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500"
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -133,10 +133,10 @@ export default function SearchBar() {
           DROPDOWN
       ============================ */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-950 rounded-xl shadow-2xl border border-zinc-800 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-950 rounded-xl shadow-2xl border border-zinc-800 overflow-hidden ring-1 ring-white/10">
           <ul>
-            <li className="px-4 py-2 text-xs font-bold text-orange-500 uppercase bg-zinc-900/50 border-b border-zinc-800">
-              Sugerencias
+            <li className="px-4 py-2 text-xs font-bold text-rose-500 uppercase bg-rose-500/10 border-b border-zinc-800 flex items-center gap-2">
+              <Sparkles size={12} /> Sugerencias
             </li>
 
             {suggestions.map((product) => (
@@ -149,8 +149,8 @@ export default function SearchBar() {
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-900 transition-colors text-left group"
                 >
                   {/* IMAGEN */}
-                  <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
-                    {product.image_url ? (
+                  <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center overflow-hidden p-1 flex-shrink-0 relative">
+                    {product.image_url && product.image_url.startsWith("http") ? (
                       <Image
                         src={product.image_url}
                         alt={product.name}
@@ -159,33 +159,37 @@ export default function SearchBar() {
                         className="object-contain"
                       />
                     ) : (
-                     
- <Image
-                        src= {`/assets/${product.category?.id}/${product.name}.png`}
+                      // Fallback corregido y limpio
+                      <Image
+                        src={`/assets/${product.category?.id}/${product.name}.png`}
                         alt={product.name}
                         width={40}
                         height={40}
                         className="object-contain"
-
-            ></Image>        
+                        // En caso de error extremo, podrías poner un icono de regalo
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                        }}
+                      />
                     )}
                   </div>
 
                   {/* INFO */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white group-hover:text-orange-400 transition-colors truncate">
+                    {/* Hover text rose */}
+                    <p className="text-sm font-medium text-white group-hover:text-rose-400 transition-colors truncate">
                       {product.name}
                     </p>
 
                     {product.category?.name && (
-                      <p className="text-xs text-zinc-500">
-                        {product.category.name}
+                      <p className="text-xs text-zinc-500 flex items-center gap-1">
+                        <Gift size={10} /> {product.category.name}
                       </p>
                     )}
                   </div>
 
                   {/* PRECIO */}
-                  <span className="text-sm font-bold text-orange-500 whitespace-nowrap">
+                  <span className="text-sm font-bold text-rose-500 whitespace-nowrap">
                     S/ {Number(product.price).toFixed(2)}
                   </span>
                 </button>
